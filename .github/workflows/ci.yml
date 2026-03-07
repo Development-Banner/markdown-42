@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint, Test & Package
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Security audit
+        # Audit only for moderate+ severity; low-severity in devDeps is acceptable
+        run: npm audit --audit-level=high
+        continue-on-error: true   # Report but don't fail — maintainer reviews
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Compile TypeScript
+        run: npm run compile
+
+      - name: Build webview bundle
+        run: npm run build:webview
+
+      - name: Run unit tests (Linux with virtual display)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:unit
+
+      - name: Run unit tests (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: npm run test:unit
+
+      - name: Coverage report
+        if: runner.os == 'Linux'
+        run: npm run test:coverage
+
+      - name: Coverage gate
+        if: runner.os == 'Linux'
+        run: npx nyc check-coverage --lines 80 --functions 80 --branches 75
+
+      - name: Package extension
+        run: npm run package
+
+      - name: Verify .vsix size < 2MB
+        shell: bash
+        run: |
+          SIZE=$(stat -c%s markscape-*.vsix 2>/dev/null || stat -f%z markscape-*.vsix)
+          echo "Package size: $SIZE bytes"
+          if [ "$SIZE" -gt 2097152 ]; then
+            echo "ERROR: .vsix exceeds 2MB limit ($SIZE bytes)"
+            exit 1
+          fi
+
+      - name: Upload .vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: markscape-vsix-${{ matrix.os }}
+          path: '*.vsix'
+          retention-days: 7

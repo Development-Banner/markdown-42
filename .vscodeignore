@@ -1,0 +1,38 @@
+# Files excluded from the .vsix package
+# Keep the package lean (<2MB)
+
+# Source TypeScript (compiled JS is in out/)
+src/**
+media/editor.ts
+media/renderer.ts
+media/inlineEditor.ts
+
+# Tests
+test/**
+out/test/**
+
+# Config and tooling
+.github/**
+.vscode/**
+.claude/**
+.eslintrc.json
+tsconfig.json
+test/tsconfig.test.json
+esbuild.config.js
+.npmrc
+
+# Dev artifacts
+node_modules/**
+coverage/**
+out-test/**
+**/*.map
+
+# Documentation and misc
+docs/**
+*.md
+!CHANGELOG.md
+PRD_markdown42.md.md
+
+# Build inputs (not needed in package)
+**/*.ts
+!out/**/*.js

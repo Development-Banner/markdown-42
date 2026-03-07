@@ -1,0 +1,747 @@
+/*
+  Markdown42 — "Obsidian Terminal" design system
+  ─────────────────────────────────────────────────
+  Philosophy  : Precision dark. Monospace confidence. Luminous edits.
+  Colors      : 100% var(--vscode-*) + controlled glow layers only.
+                Zero hardcoded hex colors — every theme supported.
+  Typography  : Cascadia Code headings (ships with VS Code) + system sans body.
+  Animation   : Purposeful micro-interactions only. No decoration for its own sake.
+*/
+
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════ */
+:root {
+  --content-width: 860px;
+  --base-font-size: 16px;
+  --line-height: 1.75;
+
+  /* Spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-8: 48px;
+
+  /* Typography */
+  --font-heading: 'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono',
+                  'Fira Code', ui-monospace, monospace;
+  --font-body:    'Segoe UI Variable', 'Segoe UI', -apple-system,
+                  'SF Pro Text', system-ui, sans-serif;
+  --font-mono:    var(--vscode-editor-font-family, monospace);
+
+  /* Animation */
+  --ease-out:  cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in:   cubic-bezier(0.4, 0.0, 1, 1);
+  --ease-snap: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --dur-fast:  80ms;
+  --dur-mid:   180ms;
+  --dur-slow:  320ms;
+}
+
+/* ═══════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: var(--base-font-size);
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  font-family: var(--font-body);
+  font-size: var(--base-font-size);
+  line-height: var(--line-height);
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT — PAGE WRAPPER
+═══════════════════════════════════════════════════ */
+#content-wrapper {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-8) 120px;
+  position: relative;
+}
+
+/* Subtle vertical rule — gives a document feel */
+#content-wrapper::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: calc(50% - var(--content-width) / 2 - 1px);
+  width: 1px;
+  height: 100vh;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--vscode-panel-border) 15%,
+    var(--vscode-panel-border) 85%,
+    transparent
+  );
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  #content-wrapper { padding: var(--sp-5) var(--sp-5) 80px; }
+  #content-wrapper::before { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════
+   SOURCE EDITOR (raw mode)
+═══════════════════════════════════════════════════ */
+#source-editor {
+  height: 100vh;
+  padding: var(--sp-6) var(--sp-8);
+  display: flex;
+  flex-direction: column;
+}
+
+#source-textarea {
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  color: var(--vscode-editor-foreground);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: var(--vscode-editor-font-size, 14px);
+  line-height: 1.6;
+  resize: none;
+  tab-size: 2;
+  padding: var(--sp-5);
+  transition: border-color var(--dur-mid) var(--ease-snap);
+}
+
+#source-textarea:focus {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder),
+              0 0 20px -4px color-mix(in srgb, var(--vscode-focusBorder) 40%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════
+   BLOCKS — THE CORE EDITING PRIMITIVE
+═══════════════════════════════════════════════════ */
+.block {
+  position: relative;
+  border-radius: 6px;
+  padding: var(--sp-3) var(--sp-4);
+  margin: 2px calc(-1 * var(--sp-4));
+  cursor: text;
+  /* Left accent bar — always present but invisible */
+  border-left: 2px solid transparent;
+  transition:
+    background  var(--dur-fast) var(--ease-snap),
+    border-color var(--dur-fast) var(--ease-snap),
+    box-shadow  var(--dur-mid) var(--ease-snap);
+  /* Prevent collapsing — ensure full click zone */
+  min-height: 2em;
+}
+
+/* Heading blocks need full-height click area */
+.block:has(h1, h2, h3, h4, h5, h6) {
+  padding-top: var(--sp-2);
+  padding-bottom: var(--sp-2);
+}
+
+.block::after {
+  /* Edit hint that fades in on hover */
+  content: '✎';
+  position: absolute;
+  top: 50%;
+  right: var(--sp-3);
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0;
+  transition: opacity var(--dur-mid) var(--ease-snap);
+  pointer-events: none;
+}
+
+.block:hover {
+  background: var(--vscode-list-hoverBackground);
+  border-left-color: var(--vscode-focusBorder);
+}
+
+.block:hover::after {
+  opacity: 0.5;
+}
+
+.block:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+/* ── Edit mode ───────────────────────── */
+.block.editing {
+  cursor: default;
+  background: color-mix(
+    in srgb,
+    var(--vscode-editor-selectionBackground) 60%,
+    var(--vscode-editor-background)
+  );
+  border-left-color: var(--vscode-focusBorder);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder) 40%, transparent),
+    0 4px 24px -4px color-mix(in srgb, var(--vscode-focusBorder) 20%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder) 15%, transparent);
+}
+
+.block.editing::after { display: none; }
+
+/* Defensive CSS guarantee: when a block is in edit mode, hide ALL rendered
+   children except the textarea — regardless of any JS timing issue. */
+.block.editing > *:not([data-editor-textarea]) {
+  display: none !important;
+}
+
+/* ── Block inline textarea ───────────── */
+.block textarea {
+  display: block;
+  width: 100%;
+  min-height: 3em;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--vscode-editor-foreground);
+  font-family: var(--font-mono);
+  font-size: calc(var(--base-font-size) * 0.9);
+  line-height: 1.6;
+  resize: none;
+  padding: var(--sp-1) 0;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  transition: min-height var(--dur-mid) var(--ease-out);
+}
+
+/* ═══════════════════════════════════════════════════
+   TYPOGRAPHY — HEADINGS
+═══════════════════════════════════════════════════ */
+
+/* Headings inside blocks: remove default top margins
+   (the block itself provides spacing via margin: 2px) */
+.block > h1, .block > h2, .block > h3,
+.block > h4, .block > h5, .block > h6 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--vscode-editor-foreground);
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+
+h1 {
+  font-size: 2.25em;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  margin-top: 0.5em;
+  /* Subtle gradient text shimmer on the first heading */
+  background: linear-gradient(
+    135deg,
+    var(--vscode-editor-foreground) 0%,
+    color-mix(in srgb, var(--vscode-focusBorder) 60%, var(--vscode-editor-foreground)) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+h2 {
+  font-size: 1.55em;
+  letter-spacing: -0.025em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
+}
+
+h3 {
+  font-size: 1.2em;
+  color: color-mix(in srgb, var(--vscode-focusBorder) 70%, var(--vscode-editor-foreground));
+}
+
+h4 { font-size: 1em; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8em; }
+h5 { font-size: 0.85em; font-weight: 500; }
+h6 { font-size: 0.8em; font-weight: 400; color: var(--vscode-descriptionForeground); }
+
+/* ═══════════════════════════════════════════════════
+   TYPOGRAPHY — BODY
+═══════════════════════════════════════════════════ */
+p {
+  margin: 0.85em 0;
+  font-variant-numeric: oldstyle-nums;
+}
+
+/* First paragraph after a heading has less top space */
+h1 + p, h2 + p, h3 + p, h4 + p { margin-top: 0.4em; }
+
+a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-textLink-foreground) 35%, transparent);
+  transition: border-color var(--dur-fast), color var(--dur-fast);
+  cursor: pointer;
+}
+
+a:hover {
+  color: var(--vscode-textLink-activeForeground);
+  border-bottom-color: var(--vscode-textLink-activeForeground);
+}
+
+strong { font-weight: 700; }
+em { font-style: italic; }
+del { text-decoration: line-through; color: var(--vscode-descriptionForeground); }
+
+mark {
+  background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 80%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0.05em 0.25em;
+}
+
+/* ═══════════════════════════════════════════════════
+   CODE
+═══════════════════════════════════════════════════ */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: color-mix(in srgb, var(--vscode-textCodeBlock-background) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  font-variant-ligatures: none;
+}
+
+pre {
+  position: relative;
+  background: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  margin: 1.25em 0;
+  overflow: hidden;
+}
+
+/* Terminal chrome bar */
+pre::before {
+  content: '● ● ●';
+  display: block;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--vscode-descriptionForeground);
+  background: color-mix(in srgb, var(--vscode-panel-border) 30%, var(--vscode-textCodeBlock-background));
+  border-bottom: 1px solid var(--vscode-panel-border);
+  font-family: var(--font-body);
+  opacity: 0.7;
+}
+
+pre code {
+  display: block;
+  padding: var(--sp-4) var(--sp-5);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  font-size: 0.875em;
+  line-height: 1.65;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+/* Left accent strip on code blocks */
+pre {
+  border-left: 3px solid var(--vscode-focusBorder);
+}
+
+/* ═══════════════════════════════════════════════════
+   LISTS
+═══════════════════════════════════════════════════ */
+ul, ol {
+  padding-left: 1.5em;
+  margin: 0.65em 0;
+}
+
+li {
+  margin: 0.3em 0;
+  padding-left: 0.25em;
+}
+
+li::marker {
+  color: var(--vscode-focusBorder);
+  font-size: 0.8em;
+}
+
+ol li::marker {
+  font-family: var(--font-heading);
+  font-size: 0.75em;
+  letter-spacing: 0.05em;
+}
+
+li > p { margin: 0.2em 0; }
+
+/* Nested lists */
+li > ul, li > ol { margin: 0.2em 0; }
+
+/* ── Task lists ──────────────────────── */
+.task-list-item {
+  list-style: none;
+  margin-left: -0.25em;
+  padding-left: 0.1em;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.task-list-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  background: transparent;
+  cursor: default;
+  flex-shrink: 0;
+  position: relative;
+  top: 2px;
+  transition: all var(--dur-fast);
+}
+
+.task-list-item input[type="checkbox"]:checked {
+  background: var(--vscode-focusBorder);
+  border-color: var(--vscode-focusBorder);
+}
+
+.task-list-item input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 5px;
+  height: 8px;
+  border: 1.5px solid var(--vscode-editor-background);
+  border-top: none;
+  border-left: none;
+  transform: rotate(40deg);
+}
+
+/* ═══════════════════════════════════════════════════
+   BLOCKQUOTES
+═══════════════════════════════════════════════════ */
+blockquote {
+  margin: 1.25em 0;
+  padding: var(--sp-3) var(--sp-5);
+  border-left: 3px solid var(--vscode-focusBorder);
+  background: color-mix(
+    in srgb,
+    var(--vscode-textBlockQuote-background, var(--vscode-list-hoverBackground)) 60%,
+    transparent
+  );
+  border-radius: 0 6px 6px 0;
+  font-style: italic;
+  color: color-mix(in srgb, var(--vscode-editor-foreground) 80%, transparent);
+}
+
+blockquote p { margin: 0.2em 0; }
+
+blockquote > blockquote {
+  margin: 0.5em 0 0.25em var(--sp-3);
+  font-size: 0.95em;
+}
+
+/* ═══════════════════════════════════════════════════
+   TABLES — Precision grid
+═══════════════════════════════════════════════════ */
+.md42-table-wrapper {
+  overflow-x: auto;
+  margin: 1.25em 0;
+  border-radius: 8px;
+  border: 1px solid var(--vscode-panel-border);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+}
+
+thead {
+  background: color-mix(
+    in srgb,
+    var(--vscode-list-hoverBackground) 70%,
+    var(--vscode-editor-background)
+  );
+}
+
+th {
+  padding: var(--sp-3) var(--sp-4);
+  text-align: left;
+  font-family: var(--font-heading);
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  white-space: nowrap;
+}
+
+td {
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 40%, transparent);
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+tr:last-child td { border-bottom: none; }
+
+tbody tr {
+  transition: background var(--dur-fast);
+}
+
+tbody tr:hover td {
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 50%, transparent);
+}
+
+tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 25%, transparent);
+}
+
+tbody tr:nth-child(even):hover td {
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 55%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════
+   HORIZONTAL RULE
+═══════════════════════════════════════════════════ */
+hr {
+  border: none;
+  margin: 2.5em 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+hr::before, hr::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--vscode-panel-border),
+    transparent
+  );
+}
+
+hr::after {
+  background: linear-gradient(
+    to left,
+    transparent,
+    var(--vscode-panel-border),
+    transparent
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   IMAGES
+═══════════════════════════════════════════════════ */
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  display: block;
+  margin: 0.75em 0;
+}
+
+/* Image captions (em directly after img in same para) */
+p > img + em {
+  display: block;
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+  margin-top: var(--sp-1);
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════
+   SELECTION
+═══════════════════════════════════════════════════ */
+::selection {
+  background: var(--vscode-editor-selectionBackground);
+  color: inherit;
+}
+
+/* ═══════════════════════════════════════════════════
+   SCROLLBAR — Thin & elegant
+═══════════════════════════════════════════════════ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+}
+
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ═══════════════════════════════════════════════════
+   ACCESSIBILITY
+═══════════════════════════════════════════════════ */
+:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   BLOCK ANIMATIONS — Page load stagger
+═══════════════════════════════════════════════════ */
+@keyframes blockReveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.block {
+  animation: blockReveal var(--dur-slow) var(--ease-out) both;
+}
+
+/* Stagger first 8 blocks */
+.block:nth-child(1) { animation-delay: 0ms; }
+.block:nth-child(2) { animation-delay: 30ms; }
+.block:nth-child(3) { animation-delay: 60ms; }
+.block:nth-child(4) { animation-delay: 90ms; }
+.block:nth-child(5) { animation-delay: 120ms; }
+.block:nth-child(6) { animation-delay: 150ms; }
+.block:nth-child(7) { animation-delay: 180ms; }
+.block:nth-child(8) { animation-delay: 210ms; }
+
+/* ═══════════════════════════════════════════════════
+   INLINE DIFF HIGHLIGHT (future feature hook)
+═══════════════════════════════════════════════════ */
+ins {
+  background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #4caf50) 15%, transparent);
+  text-decoration: none;
+  border-radius: 2px;
+  padding: 0.05em 0.15em;
+}
+
+del {
+  background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground, #f44336) 15%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════
+   SAVE BUTTON — floating bottom-right
+═══════════════════════════════════════════════════ */
+#save-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-background);
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-mid) var(--ease-snap),
+    background var(--dur-fast) var(--ease-snap),
+    color var(--dur-fast) var(--ease-snap),
+    box-shadow var(--dur-mid) var(--ease-snap);
+}
+
+#save-btn.unsaved {
+  opacity: 1;
+  pointer-events: auto;
+  color: var(--vscode-editor-foreground);
+  box-shadow: 0 2px 12px -2px color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
+}
+
+/* Unsaved dot indicator on the button */
+#save-btn.unsaved::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vscode-notificationsWarningIcon-foreground, var(--vscode-focusBorder));
+}
+
+#save-btn:hover {
+  background: var(--vscode-list-hoverBackground);
+  color: var(--vscode-editor-foreground);
+}
+
+#save-btn:active {
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
+/* ═══════════════════════════════════════════════════
+   KEYBOARD SHORTCUT HINT (shown at bottom of doc)
+═══════════════════════════════════════════════════ */
+kbd {
+  font-family: var(--font-heading);
+  font-size: 0.75em;
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 80%, transparent);
+  border: 1px solid var(--vscode-panel-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  letter-spacing: 0.03em;
+}
