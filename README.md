@@ -17,7 +17,7 @@
 
 ---
 
-<img src="/media/preview-mardown42.gif" alt="toggle bold gif" width="100%">
+<img src="https://github.com/Development-Banner/markdown-42/blob/main/media/preview-mardown42.gif" alt="toggle bold gif" width="100%">
 ---
 
 ## Why Markdown42?
