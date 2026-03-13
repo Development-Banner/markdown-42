@@ -138,6 +138,7 @@ function createBlockElement(
 
   // Security: markdown-it renders with html:false, so this HTML is safe
   div.innerHTML = block.html;
+  injectCopyButtons(div);
 
   // Prevent the block div from stealing focus from an active textarea when
   // the user clicks in the padding area (outside the textarea, inside the block).
@@ -200,6 +201,36 @@ export function extractHeadings(
   });
 
   return headings;
+}
+
+/**
+ * Injects a copy-to-clipboard button into every <pre> element in the container.
+ * Called from createBlockElement after innerHTML is set.
+ */
+export function injectCopyButtons(container: HTMLElement): void {
+  const preElements = container.querySelectorAll<HTMLPreElement>('pre');
+  preElements.forEach(pre => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    btn.setAttribute('aria-label', 'Copy code to clipboard');
+
+    btn.addEventListener('click', (e) => {
+      // Prevent the click from bubbling to the block div and triggering edit mode
+      e.stopPropagation();
+      const code = pre.querySelector('code');
+      const text = code?.textContent ?? '';
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      }).catch(() => {
+        btn.textContent = 'Failed';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+
+    pre.appendChild(btn);
+  });
 }
 
 /**

@@ -7871,6 +7871,7 @@
     div.setAttribute("tabindex", "0");
     div.setAttribute("aria-label", `Content block ${block2.index + 1}`);
     div.innerHTML = block2.html;
+    injectCopyButtons(div);
     div.addEventListener("mousedown", (e) => {
       const target = e.target;
       if (target.tagName === "TEXTAREA") return;
@@ -7910,6 +7911,32 @@
       });
     });
     return headings;
+  }
+  function injectCopyButtons(container) {
+    const preElements = container.querySelectorAll("pre");
+    preElements.forEach((pre) => {
+      const btn = document.createElement("button");
+      btn.className = "copy-btn";
+      btn.textContent = "Copy";
+      btn.setAttribute("aria-label", "Copy code to clipboard");
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const code2 = pre.querySelector("code");
+        const text2 = code2?.textContent ?? "";
+        navigator.clipboard.writeText(text2).then(() => {
+          btn.textContent = "Copied!";
+          setTimeout(() => {
+            btn.textContent = "Copy";
+          }, 1500);
+        }).catch(() => {
+          btn.textContent = "Failed";
+          setTimeout(() => {
+            btn.textContent = "Copy";
+          }, 1500);
+        });
+      });
+      pre.appendChild(btn);
+    });
   }
   function serializeCurrentBlocks() {
     return serializeBlocks(
@@ -8174,6 +8201,7 @@
     }
   });
   function switchMode(mode) {
+    updateTabBar(mode);
     currentMode = mode;
     if (mode === "source") {
       const content = serializeCurrentBlocks();
@@ -8192,6 +8220,20 @@
         vscode.postMessage({ type: "edit", content, version: localVersion });
       }
     }
+  }
+  function initTabBar() {
+    const previewTab = document.getElementById("tab-preview");
+    const sourceTab = document.getElementById("tab-source");
+    if (!previewTab || !sourceTab) return;
+    previewTab.addEventListener("click", () => switchMode("preview"));
+    sourceTab.addEventListener("click", () => switchMode("source"));
+  }
+  function updateTabBar(mode) {
+    const previewTab = document.getElementById("tab-preview");
+    const sourceTab = document.getElementById("tab-source");
+    if (!previewTab || !sourceTab) return;
+    previewTab.setAttribute("aria-selected", mode === "preview" ? "true" : "false");
+    sourceTab.setAttribute("aria-selected", mode === "source" ? "true" : "false");
   }
   sourceTextarea.addEventListener("input", () => {
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -8226,6 +8268,7 @@
       message: `Unhandled promise rejection: ${String(e.reason)}`
     });
   });
+  initTabBar();
   vscode.postMessage({ type: "ready" });
 })();
 //# sourceMappingURL=editor.js.map

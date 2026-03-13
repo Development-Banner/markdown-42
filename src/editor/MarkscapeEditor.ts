@@ -186,6 +186,10 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
   <title>Markdown42</title>
 </head>
 <body>
+  <div id="tab-bar" role="tablist" aria-label="Editor mode">
+    <button role="tab" aria-selected="true" data-mode="preview" id="tab-preview">Preview</button>
+    <button role="tab" aria-selected="false" data-mode="source" id="tab-source">Source</button>
+  </div>
   <div id="content-wrapper" role="main">
     <div id="blocks" aria-label="Document content"></div>
     <div id="source-editor" hidden aria-label="Source editor">

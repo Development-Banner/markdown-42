@@ -1,7 +1,7 @@
 {
   "name": "markdown42",
   "displayName": "Markdown42 — Live Markdown Editor",
-  "description": "Typora-style inline preview. GitHub-accurate rendering. Smart outline. Zero split panes.",
+  "description": "Typora-style live markdown editor. Click any block to edit inline — no split panes. GitHub-accurate rendering, smart outline, copy button on code blocks, and instant preview/source toggle.",
   "version": "0.1.0",
   "publisher": "markdown42",
   "license": "MIT",
@@ -9,14 +9,18 @@
     "type": "git",
     "url": "https://github.com/markdown42/markdown42-vscode"
   },
+  "bugs": {
+    "url": "https://github.com/markdown42/markdown42-vscode/issues"
+  },
+  "homepage": "https://github.com/markdown42/markdown42-vscode#readme",
   "engines": {
     "vscode": "^1.85.0",
     "node": ">=18.0.0"
   },
   "categories": [
-    "Other",
     "Formatters",
-    "Visualization"
+    "Visualization",
+    "Other"
   ],
   "keywords": [
     "markdown",
@@ -25,9 +29,23 @@
     "typora",
     "obsidian",
     "github",
+    "editor",
+    "live preview",
+    "inline preview",
+    "markdown editor",
+    "markdown preview",
+    "note taking",
+    "writing",
+    "documentation",
     "docs",
-    "readme"
+    "readme",
+    "md",
+    "live edit",
+    "no split pane",
+    "distraction free"
   ],
+  "qna": "marketplace",
+  "markdown": "github",
   "activationEvents": [],
   "main": "./out/extension.js",
   "icon": "media/icon.png",

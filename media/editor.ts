@@ -237,6 +237,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 function switchMode(mode: 'preview' | 'source'): void {
+  updateTabBar(mode);
   currentMode = mode;
   if (mode === 'source') {
     const content = serializeCurrentBlocks();
@@ -257,6 +258,24 @@ function switchMode(mode: 'preview' | 'source'): void {
       vscode.postMessage({ type: 'edit', content, version: localVersion });
     }
   }
+}
+
+function initTabBar(): void {
+  const previewTab = document.getElementById('tab-preview') as HTMLButtonElement | null;
+  const sourceTab = document.getElementById('tab-source') as HTMLButtonElement | null;
+  if (!previewTab || !sourceTab) return;
+
+  previewTab.addEventListener('click', () => switchMode('preview'));
+  sourceTab.addEventListener('click', () => switchMode('source'));
+}
+
+function updateTabBar(mode: 'preview' | 'source'): void {
+  const previewTab = document.getElementById('tab-preview');
+  const sourceTab = document.getElementById('tab-source');
+  if (!previewTab || !sourceTab) return;
+
+  previewTab.setAttribute('aria-selected', mode === 'preview' ? 'true' : 'false');
+  sourceTab.setAttribute('aria-selected', mode === 'source' ? 'true' : 'false');
 }
 
 // Source textarea changes → debounced send
@@ -305,4 +324,5 @@ window.addEventListener('unhandledrejection', (e) => {
 // ─── Boot ──────────────────────────────────────────────
 
 // Signal the extension host that the webview is ready for content
+initTabBar();
 vscode.postMessage({ type: 'ready' });
