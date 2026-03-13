@@ -188,7 +188,7 @@
     "typescript": "5.7.3"
   },
   "overrides": {
-    "serialize-javascript": "^6.0.2"
+    "serialize-javascript": "^7.0.4"
   },
   "nyc": {
     "extension": [
