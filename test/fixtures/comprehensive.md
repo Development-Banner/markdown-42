@@ -1,7 +1,7 @@
 # Markdown42 Comprehensive Test Fixture
 <!--
   Self-documenting fixture for automated testing.
-  Every case is wrapped in <!-- TEST: category/id --> ... <!-- /TEST --> markers.
+  Every case is wrapped in TEST markers: TEST: category/id ... /TEST (using HTML comment syntax).
   Use test/helpers/fixtures.ts to extract individual cases.
 -->
 
@@ -392,7 +392,7 @@ foo|bar   baz
 <!-- TEST: plain-text-table/single-column-no-convert -->
 Header
 ------
-This should not become a table.
+This should not become a table because there is only one dash group.
 <!-- /TEST -->
 
 <!-- TEST: plain-text-table/adjacent-tables -->
