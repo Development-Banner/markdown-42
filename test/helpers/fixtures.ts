@@ -7,10 +7,15 @@ import * as fs from 'fs';
 export function loadTestCases(fixturePath: string): Map<string, string> {
   const content = fs.readFileSync(fixturePath, 'utf-8');
   const map = new Map<string, string>();
+  // ID characters: word chars (\w = [a-zA-Z0-9_]), hyphens, forward slashes. Dots are NOT allowed.
   const regex = /<!--\s*TEST:\s*([\w\-/]+)\s*-->([\s\S]*?)<!--\s*\/TEST\s*-->/g;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(content)) !== null) {
-    map.set(match[1].trim(), match[2].trim());
+    const id = match[1].trim();
+    if (map.has(id)) {
+      throw new Error(`Duplicate fixture ID: "${id}" — each TEST marker must be unique.`);
+    }
+    map.set(id, match[2].trim());
   }
   return map;
 }

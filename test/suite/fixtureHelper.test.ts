@@ -55,4 +55,32 @@ suite('fixture helper', () => {
       /Expected.*to be stripped/
     );
   });
+
+  test('loadTestCases throws for duplicate fixture ID', () => {
+    const dupFile = path.join(os.tmpdir(), `md42-dup-${Date.now()}.md`);
+    fs.writeFileSync(dupFile, [
+      '<!-- TEST: block/heading -->',
+      '# First',
+      '<!-- /TEST -->',
+      '',
+      '<!-- TEST: block/heading -->',
+      '# Duplicate',
+      '<!-- /TEST -->',
+    ].join('\n'));
+    try {
+      assert.throws(
+        () => loadTestCases(dupFile),
+        /Duplicate fixture ID: "block\/heading"/
+      );
+    } finally {
+      fs.unlinkSync(dupFile);
+    }
+  });
+
+  test('loadTestCases throws for non-existent file', () => {
+    assert.throws(
+      () => loadTestCases('/nonexistent/path/does-not-exist.md'),
+      /ENOENT/
+    );
+  });
 });
