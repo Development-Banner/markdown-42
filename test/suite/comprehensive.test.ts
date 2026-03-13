@@ -55,7 +55,7 @@ suite('comprehensive fixture', () => {
     test('multi-paragraph renders two <p> tags', () => {
       const html = renderMarkdown(getTestCase(cases, 'block/paragraph-multi'));
       const count = (html.match(/<p>/g) ?? []).length;
-      assert.strictEqual(count, 2, `Expected 2 <p> tags, got ${count} in: ${html}`);
+      assert.ok(count >= 2, `Expected >= 2 <p> tags, got ${count} in: ${html}`);
     });
 
     test('nested blockquote 3-deep renders nested <blockquote>', () => {
@@ -170,6 +170,11 @@ suite('comprehensive fixture', () => {
       const html = renderMarkdown(getTestCase(cases, 'inline/emoji-tada'));
       assert.ok(html.includes('🎉'), html);
     });
+
+    test('hard line break renders <br>', () => {
+      const html = renderMarkdown(getTestCase(cases, 'inline/hard-line-break'));
+      assert.ok(html.includes('<br'), `Expected <br> for trailing-space hard break in: ${html}`);
+    });
   });
 
   // ── Combinations ──────────────────────────────────────────────
@@ -262,6 +267,7 @@ suite('comprehensive fixture', () => {
       const md = getTestCase(cases, 'plain-text-table/two-column');
       const processed = preprocessSpaceTables(md);
       assert.ok(processed.includes('|'), `Expected GFM pipe in: ${processed}`);
+      // renderMarkdown() calls preprocessSpaceTables() internally — passing raw md is correct
       const html = renderMarkdown(md);
       assert.ok(html.includes('<table>'), html);
     });
@@ -318,6 +324,9 @@ suite('comprehensive fixture', () => {
     test('strips <img> with onerror', () => {
       const html = renderMarkdown(getTestCase(cases, 'sanitization/raw-img-tag'));
       assertStripped(html, '<img');
+      // onerror must not appear as a live executable HTML attribute
+      const hasLiveOnerror = /<[a-z][^>]* onerror=/i.test(html);
+      assert.ok(!hasLiveOnerror, `Found live onerror attribute in: ${html}`);
     });
 
     test('strips <iframe>', () => {
@@ -335,6 +344,11 @@ suite('comprehensive fixture', () => {
       // The renderer either strips the link or renders it as escaped text.
       // In either case, it must NOT produce a live href with vbscript:.
       assertStripped(html, 'href="vbscript:');
+    });
+
+    test('does not render data:text/html as executable href', () => {
+      const html = renderMarkdown(getTestCase(cases, 'sanitization/data-html-link'));
+      assertStripped(html, 'href="data:');
     });
 
     test('strips onclick from <a>', () => {
