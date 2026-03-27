@@ -75,9 +75,10 @@ function switchModeVisibility(
   mode: 'preview' | 'source',
   sourceEditor: FakePanel,
   blocksContainer: FakePanel,
-  scrollTo: (x: number, y: number) => void
+  scrollTo: (x: number, y: number) => void,
+  scroll = true
 ): void {
-  scrollTo(0, 0); // mirrors window.scrollTo(0, 0) added to switchMode() in editor.ts
+  if (scroll) scrollTo(0, 0); // test stand-in for window.scrollTo(0,0) at the top of switchMode() in editor.ts
   if (mode === 'source') {
     sourceEditor.hidden = false;
     blocksContainer.hidden = true;
@@ -130,5 +131,15 @@ suite('switchMode visibility', () => {
     switchModeVisibility('preview', sourceEditor, blocksContainer, scrollTo);
     assert.strictEqual(scrollTo.callCount, 2);
     assert.ok(scrollTo.alwaysCalledWithExactly(0, 0));
+  });
+
+  test('config-driven switch (scroll=false) does not call scrollTo', () => {
+    const sourceEditor: FakePanel = { hidden: true };
+    const blocksContainer: FakePanel = { hidden: false };
+    switchModeVisibility('source', sourceEditor, blocksContainer, scrollTo, false);
+    assert.strictEqual(scrollTo.callCount, 0);
+    // visibility still changes even when scroll is suppressed
+    assert.strictEqual(sourceEditor.hidden, false);
+    assert.strictEqual(blocksContainer.hidden, true);
   });
 });

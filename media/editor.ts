@@ -236,8 +236,8 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-function switchMode(mode: 'preview' | 'source'): void {
-  window.scrollTo(0, 0);
+function switchMode(mode: 'preview' | 'source', scroll = true): void {
+  if (scroll) window.scrollTo(0, 0);
   updateTabBar(mode);
   currentMode = mode;
   if (mode === 'source') {
@@ -302,7 +302,7 @@ function applyConfig(config: WebviewConfig): void {
   root.style.setProperty('--base-font-size', `${config.fontSize}px`);
 
   if (config.mode !== currentMode) {
-    switchMode(config.mode);
+    switchMode(config.mode, false);
   }
 }
 

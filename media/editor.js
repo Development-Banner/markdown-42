@@ -8200,8 +8200,8 @@
       triggerSave();
     }
   });
-  function switchMode(mode) {
-    window.scrollTo(0, 0);
+  function switchMode(mode, scroll = true) {
+    if (scroll) window.scrollTo(0, 0);
     updateTabBar(mode);
     currentMode = mode;
     if (mode === "source") {
@@ -8254,7 +8254,7 @@
     root.style.setProperty("--content-width", `${config2.lineWidth}px`);
     root.style.setProperty("--base-font-size", `${config2.fontSize}px`);
     if (config2.mode !== currentMode) {
-      switchMode(config2.mode);
+      switchMode(config2.mode, false);
     }
   }
   window.addEventListener("error", (e) => {
