@@ -114,6 +114,8 @@ body {
   flex-direction: column;
 }
 
+#source-editor[hidden] { display: none; }
+
 #source-textarea {
   flex: 1;
   width: 100%;
