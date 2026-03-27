@@ -237,6 +237,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 function switchMode(mode: 'preview' | 'source'): void {
+  window.scrollTo(0, 0);
   updateTabBar(mode);
   currentMode = mode;
   if (mode === 'source') {

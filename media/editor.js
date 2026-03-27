@@ -8201,6 +8201,7 @@
     }
   });
   function switchMode(mode) {
+    window.scrollTo(0, 0);
     updateTabBar(mode);
     currentMode = mode;
     if (mode === "source") {

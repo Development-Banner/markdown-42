@@ -77,7 +77,7 @@ function switchModeVisibility(
   blocksContainer: FakePanel,
   scrollTo: (x: number, y: number) => void
 ): void {
-  scrollTo(0, 0);
+  scrollTo(0, 0); // mirrors window.scrollTo(0, 0) added to switchMode() in editor.ts
   if (mode === 'source') {
     sourceEditor.hidden = false;
     blocksContainer.hidden = true;
