@@ -108,13 +108,15 @@ body {
    SOURCE EDITOR (raw mode)
 ═══════════════════════════════════════════════════ */
 #source-editor {
+  display: none; /* hidden by default; JS adds .source-visible to show */
   height: 100vh;
   padding: var(--sp-6) var(--sp-8);
-  display: flex;
   flex-direction: column;
 }
 
-#source-editor[hidden] { display: none; }
+#source-editor.source-visible {
+  display: flex;
+}
 
 #source-textarea {
   flex: 1;

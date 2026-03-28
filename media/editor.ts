@@ -244,11 +244,11 @@ function switchMode(mode: 'preview' | 'source', scroll = true): void {
   if (mode === 'source') {
     const content = serializeCurrentBlocks();
     sourceTextarea.value = content;
-    sourceEditor.hidden = false;
+    sourceEditor.classList.add('source-visible');
     blocksContainer.hidden = true;
     sourceTextarea.focus();
   } else {
-    sourceEditor.hidden = true;
+    sourceEditor.classList.remove('source-visible');
     blocksContainer.hidden = false;
     // Re-render from source textarea if it was modified
     const content = sourceTextarea.value;

@@ -8208,11 +8208,11 @@
     if (mode === "source") {
       const content = serializeCurrentBlocks();
       sourceTextarea.value = content;
-      sourceEditor.hidden = false;
+      sourceEditor.classList.add("source-visible");
       blocksContainer.hidden = true;
       sourceTextarea.focus();
     } else {
-      sourceEditor.hidden = true;
+      sourceEditor.classList.remove("source-visible");
       blocksContainer.hidden = false;
       const content = sourceTextarea.value;
       if (content) {
