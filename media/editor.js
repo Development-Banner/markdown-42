@@ -8060,6 +8060,7 @@
     mode: "preview"
   };
   var currentMode = "preview";
+  var modeInitialized = false;
   var debounceTimer = null;
   var hasUnsavedChanges = false;
   function markUnsaved() {
@@ -8253,8 +8254,11 @@
     const root = document.documentElement;
     root.style.setProperty("--content-width", `${config2.lineWidth}px`);
     root.style.setProperty("--base-font-size", `${config2.fontSize}px`);
-    if (config2.mode !== currentMode) {
-      switchMode(config2.mode, false);
+    if (!modeInitialized) {
+      modeInitialized = true;
+      if (config2.mode !== currentMode) {
+        switchMode(config2.mode, false);
+      }
     }
   }
   window.addEventListener("error", (e) => {

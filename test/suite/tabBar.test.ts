@@ -143,3 +143,62 @@ suite('switchMode visibility', () => {
     assert.strictEqual(blocksContainer.hidden, true);
   });
 });
+
+// ─── applyConfig mode-gating ──────────────────────────────────────────────────
+//
+// Guards BUG: applyConfig was called on every 'update' message (including
+// echoes of the user's own Source-mode edits), resetting currentMode to the
+// defaultMode setting on every keystroke and kicking the user back to Preview.
+//
+// Fix: applyConfig only applies config.mode on the FIRST call (initial load).
+// Subsequent calls preserve the user's chosen mode.
+
+/**
+ * Mirrors the mode-gating logic inside editor.ts applyConfig().
+ * modeInitialized is passed by reference via a wrapper object so tests can
+ * reset it between cases without module-level state.
+ */
+function applyConfigMode(
+  configMode: 'preview' | 'source',
+  state: { currentMode: 'preview' | 'source'; modeInitialized: boolean },
+  switchModeFn: (mode: 'preview' | 'source') => void
+): void {
+  if (!state.modeInitialized) {
+    state.modeInitialized = true;
+    if (configMode !== state.currentMode) {
+      switchModeFn(configMode);
+      state.currentMode = configMode;
+    }
+  }
+}
+
+suite('applyConfig mode-gating', () => {
+  test('first call applies config.mode when different from current', () => {
+    const switchMode = sinon.spy();
+    const state = { currentMode: 'preview' as const, modeInitialized: false };
+    applyConfigMode('source', state, switchMode);
+    assert.ok(switchMode.calledOnceWith('source'));
+    assert.strictEqual(state.currentMode, 'source');
+  });
+
+  test('first call is a no-op when config.mode matches current', () => {
+    const switchMode = sinon.spy();
+    const state = { currentMode: 'preview' as const, modeInitialized: false };
+    applyConfigMode('preview', state, switchMode);
+    assert.strictEqual(switchMode.callCount, 0);
+  });
+
+  test('second call does not switch mode even if config.mode differs (regression: edit-echo reset)', () => {
+    const switchMode = sinon.spy();
+    const state = { currentMode: 'preview' as const, modeInitialized: false };
+    // First call: initial load, config says preview → stays preview
+    applyConfigMode('preview', state, switchMode);
+    // User manually switches to source (simulated by mutating state)
+    (state as { currentMode: 'preview' | 'source' }).currentMode = 'source';
+    // Second call: host echoes back an update with config.mode = 'preview'
+    // This must NOT switch the user back to preview
+    applyConfigMode('preview', state, switchMode);
+    assert.strictEqual(switchMode.callCount, 0, 'applyConfig must not reset user mode on subsequent updates');
+    assert.strictEqual(state.currentMode, 'source');
+  });
+});

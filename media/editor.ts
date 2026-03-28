@@ -26,6 +26,7 @@ let currentConfig: WebviewConfig = {
   mode: 'preview',
 };
 let currentMode: 'preview' | 'source' = 'preview';
+let modeInitialized = false;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let hasUnsavedChanges = false;
 
@@ -301,8 +302,15 @@ function applyConfig(config: WebviewConfig): void {
   root.style.setProperty('--content-width', `${config.lineWidth}px`);
   root.style.setProperty('--base-font-size', `${config.fontSize}px`);
 
-  if (config.mode !== currentMode) {
-    switchMode(config.mode, false);
+  // Apply the configured mode only on the initial load (the first update after
+  // the webview sends 'ready'). After that the user's mode choice is authoritative
+  // — re-applying config.mode on every subsequent update would reset the mode
+  // every time the host echoes back an edit the user made in Source mode.
+  if (!modeInitialized) {
+    modeInitialized = true;
+    if (config.mode !== currentMode) {
+      switchMode(config.mode, false);
+    }
   }
 }
 
