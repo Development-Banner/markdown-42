@@ -1,7 +1,14 @@
 import * as assert from 'assert';
+import * as Module from 'module';
 
-const Module = require('module') as { _load: any };
-const originalLoad = Module._load;
+type ModuleLoad = (request: string, parent: unknown, isMain: boolean) => unknown;
+
+type ModuleWithLoad = typeof Module & {
+  _load: ModuleLoad;
+};
+
+const moduleWithLoad = Module as ModuleWithLoad;
+const originalLoad = moduleWithLoad._load;
 
 const vscodeStub = {
   Uri: {
@@ -38,16 +45,17 @@ const vscodeStub = {
 
 const Markdown42Editor = (() => {
   try {
-    Module._load = function patchedLoad(request: string, parent: unknown, isMain: boolean) {
+    moduleWithLoad._load = function patchedLoad(request: string, parent: unknown, isMain: boolean) {
       if (request === 'vscode') {
         return vscodeStub;
       }
       return originalLoad.call(this, request, parent, isMain);
     };
 
-    return require('../../src/editor/MarkscapeEditor').Markdown42Editor as typeof import('../../src/editor/MarkscapeEditor').Markdown42Editor;
+    const testRequire = Module.createRequire(__filename);
+    return testRequire('../../src/editor/MarkscapeEditor').Markdown42Editor as typeof import('../../src/editor/MarkscapeEditor').Markdown42Editor;
   } finally {
-    Module._load = originalLoad;
+    moduleWithLoad._load = originalLoad;
   }
 })();
 
