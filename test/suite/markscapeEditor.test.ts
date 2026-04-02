@@ -7,7 +7,7 @@ type ModuleWithLoad = typeof Module & {
   _load: ModuleLoad;
 };
 
-const moduleWithLoad = Module as ModuleWithLoad;
+const moduleWithLoad = Module.createRequire(__filename)('module') as ModuleWithLoad;
 const originalLoad = moduleWithLoad._load;
 
 const vscodeStub = {
@@ -45,17 +45,25 @@ const vscodeStub = {
 
 const Markdown42Editor = (() => {
   try {
-    moduleWithLoad._load = function patchedLoad(request: string, parent: unknown, isMain: boolean) {
-      if (request === 'vscode') {
-        return vscodeStub;
-      }
-      return originalLoad.call(this, request, parent, isMain);
-    };
+    Object.defineProperty(moduleWithLoad, '_load', {
+      value: function patchedLoad(request: string, parent: unknown, isMain: boolean) {
+        if (request === 'vscode') {
+          return vscodeStub;
+        }
+        return originalLoad.call(this, request, parent, isMain);
+      },
+      writable: true,
+      configurable: true,
+    });
 
     const testRequire = Module.createRequire(__filename);
     return testRequire('../../src/editor/MarkscapeEditor').Markdown42Editor as typeof import('../../src/editor/MarkscapeEditor').Markdown42Editor;
   } finally {
-    moduleWithLoad._load = originalLoad;
+    Object.defineProperty(moduleWithLoad, '_load', {
+      value: originalLoad,
+      writable: true,
+      configurable: true,
+    });
   }
 })();
 

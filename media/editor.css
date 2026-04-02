@@ -112,6 +112,11 @@ body {
   height: 100vh;
   padding: var(--sp-6) var(--sp-8);
   flex-direction: column;
+  overflow: hidden;
+}
+
+#source-editor[hidden] {
+  display: none !important;
 }
 
 #source-editor.source-visible {
