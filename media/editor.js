@@ -8046,6 +8046,36 @@
     return _activeBlockIndex;
   }
 
+  // media/modeHelpers.ts
+  function applyModeVisibility(mode, sourceEditor2, blocksContainer2, sourceTextarea2) {
+    const showSource = mode === "source";
+    sourceEditor2.hidden = !showSource;
+    sourceEditor2.style.display = showSource ? "flex" : "none";
+    sourceTextarea2.hidden = !showSource;
+    sourceTextarea2.style.display = showSource ? "block" : "none";
+    if (showSource) {
+      sourceEditor2.classList.add("source-visible");
+    } else {
+      sourceEditor2.classList.remove("source-visible");
+    }
+    blocksContainer2.hidden = showSource;
+  }
+  function getSourceModeContent(editing, commitActiveEdit2, serializeCurrentBlocks2) {
+    if (editing) {
+      commitActiveEdit2();
+    }
+    return serializeCurrentBlocks2();
+  }
+  function updateEmptyState(content, blocksContainer2) {
+    if (content.trim().length === 0) {
+      blocksContainer2.dataset["empty"] = "true";
+      blocksContainer2.dataset["emptyMessage"] = "Document is empty. Switch to Source to start writing.";
+      return;
+    }
+    delete blocksContainer2.dataset["empty"];
+    delete blocksContainer2.dataset["emptyMessage"];
+  }
+
   // media/editor.ts
   var vscode = acquireVsCodeApi();
   var blocksContainer = document.getElementById("blocks");
@@ -8078,6 +8108,10 @@
     vscode.postMessage({ type: "save" });
     markSaved();
   }
+  function postEdit(content) {
+    vscode.postMessage({ type: "edit", content, version: localVersion });
+    markUnsaved();
+  }
   var saveBtn = document.createElement("button");
   saveBtn.id = "save-btn";
   saveBtn.title = "Save (Ctrl+S)";
@@ -8097,6 +8131,7 @@
           } else {
             renderAll(data.content, blocksContainer, handleBlockClick);
           }
+          updateEmptyState(data.content, blocksContainer);
           sendOutline();
         } else {
           sourceTextarea.value = data.content;
@@ -8155,9 +8190,7 @@
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       const content = serializeCurrentBlocks();
-      localVersion++;
-      vscode.postMessage({ type: "edit", content, version: localVersion });
-      markUnsaved();
+      postEdit(content);
     }, currentConfig.renderDelay);
   }
   function sendOutline() {
@@ -8206,20 +8239,27 @@
     updateTabBar(mode);
     currentMode = mode;
     if (mode === "source") {
-      const content = serializeCurrentBlocks();
+      const content = getSourceModeContent(
+        isEditing(),
+        commitActiveEdit,
+        serializeCurrentBlocks
+      );
       sourceTextarea.value = content;
-      sourceEditor.classList.add("source-visible");
-      blocksContainer.hidden = true;
+      applyModeVisibility("source", sourceEditor, blocksContainer, sourceTextarea);
       sourceTextarea.focus();
     } else {
-      sourceEditor.classList.remove("source-visible");
-      blocksContainer.hidden = false;
+      const previousContent = serializeCurrentBlocks();
+      applyModeVisibility("preview", sourceEditor, blocksContainer, sourceTextarea);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+      }
       const content = sourceTextarea.value;
-      if (content) {
-        renderAll(content, blocksContainer, handleBlockClick);
-        sendOutline();
-        localVersion++;
-        vscode.postMessage({ type: "edit", content, version: localVersion });
+      renderAll(content, blocksContainer, handleBlockClick);
+      updateEmptyState(content, blocksContainer);
+      sendOutline();
+      if (content !== previousContent) {
+        postEdit(content);
       }
     }
   }
@@ -8240,13 +8280,7 @@
   sourceTextarea.addEventListener("input", () => {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      localVersion++;
-      vscode.postMessage({
-        type: "edit",
-        content: sourceTextarea.value,
-        version: localVersion
-      });
-      markUnsaved();
+      postEdit(sourceTextarea.value);
     }, currentConfig.renderDelay);
   });
   function applyConfig(config2) {
@@ -8274,6 +8308,7 @@
     });
   });
   initTabBar();
+  applyModeVisibility("preview", sourceEditor, blocksContainer, sourceTextarea);
   vscode.postMessage({ type: "ready" });
 })();
 //# sourceMappingURL=editor.js.map

@@ -4,6 +4,7 @@
 import { renderAll, renderUpdate, extractHeadings, getRenderedBlocks, serializeCurrentBlocks } from './renderer';
 import { enterEditMode, isEditing, getActiveBlockIndex, commitActiveEdit } from './inlineEditor';
 import type { HostToWebview, WebviewToHost, WebviewConfig } from '../src/editor/MessageBus';
+import { applyModeVisibility, getSourceModeContent, updateEmptyState } from './modeHelpers';
 
 // VS Code webview API — injected by the extension host
 declare function acquireVsCodeApi(): {
@@ -50,6 +51,11 @@ function triggerSave(): void {
   markSaved();
 }
 
+function postEdit(content: string): void {
+  vscode.postMessage({ type: 'edit', content, version: localVersion });
+  markUnsaved();
+}
+
 // ─── Save button ────────────────────────────────────
 
 const saveBtn = document.createElement('button');
@@ -76,6 +82,7 @@ window.addEventListener('message', ({ data }: MessageEvent<HostToWebview>) => {
         } else {
           renderAll(data.content, blocksContainer, handleBlockClick);
         }
+        updateEmptyState(data.content, blocksContainer);
         sendOutline();
       } else {
         sourceTextarea.value = data.content;
@@ -173,9 +180,7 @@ function scheduleSend(): void {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     const content = serializeCurrentBlocks();
-    localVersion++;
-    vscode.postMessage({ type: 'edit', content, version: localVersion });
-    markUnsaved();
+    postEdit(content);
   }, currentConfig.renderDelay);
 }
 
@@ -242,22 +247,30 @@ function switchMode(mode: 'preview' | 'source', scroll = true): void {
   updateTabBar(mode);
   currentMode = mode;
   if (mode === 'source') {
-    const content = serializeCurrentBlocks();
+    const content = getSourceModeContent(
+      isEditing(),
+      commitActiveEdit,
+      serializeCurrentBlocks
+    );
     sourceTextarea.value = content;
-    sourceEditor.classList.add('source-visible');
-    blocksContainer.hidden = true;
+    applyModeVisibility('source', sourceEditor, blocksContainer, sourceTextarea);
     sourceTextarea.focus();
   } else {
-    sourceEditor.classList.remove('source-visible');
-    blocksContainer.hidden = false;
-    // Re-render from source textarea if it was modified
+    const previousContent = serializeCurrentBlocks();
+    applyModeVisibility('preview', sourceEditor, blocksContainer, sourceTextarea);
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+
+    // Re-render from source textarea even when it is empty so preview cannot
+    // get stuck showing stale content after the source buffer is cleared.
     const content = sourceTextarea.value;
-    if (content) {
-      renderAll(content, blocksContainer, handleBlockClick);
-      sendOutline();
-      // Sync edit back to host
-      localVersion++;
-      vscode.postMessage({ type: 'edit', content, version: localVersion });
+    renderAll(content, blocksContainer, handleBlockClick);
+    updateEmptyState(content, blocksContainer);
+    sendOutline();
+    if (content !== previousContent) {
+      postEdit(content);
     }
   }
 }
@@ -284,13 +297,7 @@ function updateTabBar(mode: 'preview' | 'source'): void {
 sourceTextarea.addEventListener('input', () => {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
-    localVersion++;
-    vscode.postMessage({
-      type: 'edit',
-      content: sourceTextarea.value,
-      version: localVersion,
-    });
-    markUnsaved();
+    postEdit(sourceTextarea.value);
   }, currentConfig.renderDelay);
 });
 
@@ -334,4 +341,5 @@ window.addEventListener('unhandledrejection', (e) => {
 
 // Signal the extension host that the webview is ready for content
 initTabBar();
+applyModeVisibility('preview', sourceEditor, blocksContainer, sourceTextarea);
 vscode.postMessage({ type: 'ready' });
