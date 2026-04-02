@@ -48,7 +48,7 @@ suite('modeHelpers', () => {
       style: { display: 'none' },
     };
 
-    applyModeVisibility('source', sourceEditor, blocksContainer, sourceTextarea as {
+    applyModeVisibility('source', blocksContainer, sourceEditor, sourceTextarea as {
       hidden: boolean;
       style: { display: string };
     });
@@ -71,7 +71,7 @@ suite('modeHelpers', () => {
       style: { display: 'block' },
     };
 
-    applyModeVisibility('preview', sourceEditor, blocksContainer, sourceTextarea as {
+    applyModeVisibility('preview', blocksContainer, sourceEditor, sourceTextarea as {
       hidden: boolean;
       style: { display: string };
     });
@@ -94,7 +94,7 @@ suite('modeHelpers', () => {
       style: { display: 'none' },
     };
 
-    applyModeVisibility('preview', sourceEditor, blocksContainer, sourceTextarea as {
+    applyModeVisibility('preview', blocksContainer, sourceEditor, sourceTextarea as {
       hidden: boolean;
       style: { display: string };
     });

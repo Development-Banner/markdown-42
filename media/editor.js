@@ -8047,7 +8047,7 @@
   }
 
   // media/modeHelpers.ts
-  function applyModeVisibility(mode, sourceEditor2, blocksContainer2, sourceTextarea2) {
+  function applyModeVisibility(mode, blocksContainer2, sourceEditor2, sourceTextarea2) {
     const showSource = mode === "source";
     blocksContainer2.hidden = showSource;
     sourceEditor2.hidden = !showSource;
@@ -8245,11 +8245,11 @@
         serializeCurrentBlocks
       );
       sourceTextarea.value = content;
-      applyModeVisibility("source", sourceEditor, blocksContainer, sourceTextarea);
+      applyModeVisibility("source", blocksContainer, sourceEditor, sourceTextarea);
       sourceTextarea.focus();
     } else {
       const previousContent = serializeCurrentBlocks();
-      applyModeVisibility("preview", sourceEditor, blocksContainer, sourceTextarea);
+      applyModeVisibility("preview", blocksContainer, sourceEditor, sourceTextarea);
       if (debounceTimer) {
         clearTimeout(debounceTimer);
         debounceTimer = null;
@@ -8308,7 +8308,7 @@
     });
   });
   initTabBar();
-  applyModeVisibility("preview", sourceEditor, blocksContainer, sourceTextarea);
+  applyModeVisibility("preview", blocksContainer, sourceEditor, sourceTextarea);
   vscode.postMessage({ type: "ready" });
 })();
 //# sourceMappingURL=editor.js.map

@@ -253,11 +253,11 @@ function switchMode(mode: 'preview' | 'source', scroll = true): void {
       serializeCurrentBlocks
     );
     sourceTextarea.value = content;
-    applyModeVisibility('source', sourceEditor, blocksContainer, sourceTextarea);
+    applyModeVisibility('source', blocksContainer, sourceEditor, sourceTextarea);
     sourceTextarea.focus();
   } else {
     const previousContent = serializeCurrentBlocks();
-    applyModeVisibility('preview', sourceEditor, blocksContainer, sourceTextarea);
+    applyModeVisibility('preview', blocksContainer, sourceEditor, sourceTextarea);
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
@@ -341,5 +341,5 @@ window.addEventListener('unhandledrejection', (e) => {
 
 // Signal the extension host that the webview is ready for content
 initTabBar();
-applyModeVisibility('preview', sourceEditor, blocksContainer, sourceTextarea);
+applyModeVisibility('preview', blocksContainer, sourceEditor, sourceTextarea);
 vscode.postMessage({ type: 'ready' });

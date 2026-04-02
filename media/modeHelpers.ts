@@ -25,8 +25,8 @@ interface SourceTextareaLike {
 
 export function applyModeVisibility(
   mode: EditorMode,
-  sourceEditor: SourceEditorLike,
   blocksContainer: BlocksContainerLike,
+  sourceEditor: SourceEditorLike,
   sourceTextarea: SourceTextareaLike
 ): void {
   const showSource = mode === 'source';
