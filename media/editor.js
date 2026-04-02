@@ -8049,6 +8049,7 @@
   // media/modeHelpers.ts
   function applyModeVisibility(mode, sourceEditor2, blocksContainer2, sourceTextarea2) {
     const showSource = mode === "source";
+    blocksContainer2.hidden = showSource;
     sourceEditor2.hidden = !showSource;
     sourceEditor2.style.display = showSource ? "flex" : "none";
     sourceTextarea2.hidden = !showSource;
@@ -8058,7 +8059,6 @@
     } else {
       sourceEditor2.classList.remove("source-visible");
     }
-    blocksContainer2.hidden = showSource;
   }
   function getSourceModeContent(editing, commitActiveEdit2, serializeCurrentBlocks2) {
     if (editing) {

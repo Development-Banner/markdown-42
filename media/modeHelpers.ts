@@ -30,6 +30,8 @@ export function applyModeVisibility(
   sourceTextarea: SourceTextareaLike
 ): void {
   const showSource = mode === 'source';
+
+  blocksContainer.hidden = showSource;
   sourceEditor.hidden = !showSource;
   sourceEditor.style.display = showSource ? 'flex' : 'none';
   sourceTextarea.hidden = !showSource;
@@ -39,7 +41,6 @@ export function applyModeVisibility(
   } else {
     sourceEditor.classList.remove('source-visible');
   }
-  blocksContainer.hidden = showSource;
 }
 
 export function getSourceModeContent(
