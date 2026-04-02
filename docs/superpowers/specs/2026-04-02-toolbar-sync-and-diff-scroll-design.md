@@ -1,0 +1,224 @@
+# Toolbar Sync And Diff Scroll Design
+
+## Summary
+
+Replace the current split between a text-only mode tab bar and a floating save button with a single top toolbar that contains:
+
+- mode controls for Preview and Source, each with a clear icon
+- a right-aligned sync/save control that reflects autosave state and remains clickable for manual save
+
+Also add explicit scroll synchronization when Markdown42 is opened in a VS Code diff/compare view so that the left and right panes track each other while scrolling.
+
+## Goals
+
+- Keep editing controls in one consistent top toolbar
+- Make autosave visible and understandable without implying manual save is always required
+- Preserve a manual save action when autosave is disabled
+- Add scroll syncing for custom-editor diff panes
+- Avoid regressions in normal single-editor mode, outline behavior, and mode switching
+
+## Non-Goals
+
+- Reworking the underlying markdown rendering pipeline
+- Building inline textual diff highlighting inside the rendered markdown
+- Replacing VS Code's native diff semantics beyond scroll coordination
+- Adding new settings beyond the existing `markdown42.autoSave`
+
+## Current Problems
+
+### Save and autosave feedback
+
+The webview currently marks itself unsaved after any edit and shows a floating save button. When autosave is enabled, the host does save the document, but the webview does not transition back to a saved state based on a confirmed host update. This leaves the user with misleading "manual save needed" feedback even though the document is already being persisted.
+
+### Fragmented control layout
+
+Preview and Source live in the top tab bar, while save feedback lives in a floating button at the bottom-right. This splits related editor actions across two UI regions and makes the save state feel disconnected from the editing mode controls.
+
+### Diff view scroll behavior
+
+The extension currently has outline-scroll handling inside a single webview, but no cross-pane scroll coordination for custom editor diff views. As a result, compare panes can drift apart while scrolling.
+
+## Proposed UX
+
+### Toolbar layout
+
+The editor header becomes a single toolbar with two groups:
+
+- left group: Preview and Source toggle buttons, each with an icon plus label
+- right group: one sync/save button with an icon and optional compact state styling
+
+The toolbar remains visually lightweight and aligned with the existing VS Code theme variables.
+
+### Mode controls
+
+Preview and Source remain the only modes. Their behavior does not change, but their presentation becomes clearer:
+
+- Preview gets an eye-style icon
+- Source gets a code/document-style icon
+- active state remains visible via aria selection and existing theme-aware emphasis
+
+### Sync/save control behavior
+
+The right-side control is always visible and always clickable.
+
+When `markdown42.autoSave` is `true`:
+
+- initial and stable state is `synced`
+- after a local edit is posted to the host, state becomes `syncing`
+- after the host confirms the updated content version, state returns to `synced`
+- clicking the control still triggers an explicit save, but the tooltip explains that autosave is enabled
+
+When `markdown42.autoSave` is `false`:
+
+- initial and stable state is `synced` if there are no pending edits
+- after a local edit is posted and confirmed, state becomes `dirty`
+- clicking the control saves the document and returns state to `synced`
+
+### Tooltip copy
+
+Tooltips should clearly explain state without being verbose:
+
+- autosave enabled, idle: "Synced automatically"
+- autosave enabled, pending host confirmation: "Syncing changes..."
+- autosave disabled, clean: "No unsaved changes"
+- autosave disabled, dirty: "Save changes"
+
+## Technical Design
+
+### Webview sync-state model
+
+The webview should replace the current binary unsaved marker with an explicit sync state enum:
+
+- `synced`
+- `syncing`
+- `dirty`
+
+State transitions:
+
+1. local edit is queued or posted
+2. if autosave is enabled, enter `syncing`
+3. if autosave is disabled, remain optimistic until host echo confirms the new version, then enter `dirty`
+4. explicit save or autosave-confirmed update returns to `synced`
+
+The webview should stop assuming that sending an edit implies a persistent unsaved state forever. Instead, host-confirmed updates become the authoritative acknowledgement boundary.
+
+### Host/webview save acknowledgement
+
+The host already applies edits and may save immediately. The updated design should formalize that flow:
+
+1. webview sends `edit` with current version
+2. host applies the edit if version matches
+3. host autosaves if configured
+4. host sends back the resulting `update`
+5. webview interprets that update together with the current autosave mode and clears or preserves local pending state accordingly
+
+No CSP weakening or unsafe browser storage is needed.
+
+### Toolbar HTML and styling
+
+The webview HTML generated by the custom editor should be updated to:
+
+- wrap the current Preview/Source buttons in a left toolbar group
+- add a right toolbar group placeholder for the sync/save control
+- remove the floating bottom-right save button
+
+CSS should:
+
+- keep the toolbar compact and theme-aware
+- align icons and labels cleanly
+- expose clear state styling for active mode and sync state
+- avoid large layout shifts when the sync state changes
+
+### Diff scroll synchronization
+
+Diff sync needs an explicit host-mediated coordination layer because each diff pane runs in its own webview instance.
+
+#### Instance pairing
+
+Each resolved custom editor instance should register itself with the extension host using its document URI and panel identity. When two live editors are associated with the same diff session, the host should treat them as a pair.
+
+Practical pairing requirement:
+
+- the pairing mechanism must work for standard VS Code compare/diff layouts where the same custom editor type is opened side-by-side by the workbench
+- if no pair is found, the editor should behave exactly as it does today
+
+#### Scroll message flow
+
+Each webview should send lightweight scroll updates to the host containing:
+
+- panel-local scroll position
+- normalized scroll ratio based on total scrollable height
+- enough identity metadata for the host to forward the update to the paired pane
+
+The host forwards the normalized position to the counterpart webview.
+
+The receiving pane applies the scroll position programmatically using the normalized ratio against its own scroll height.
+
+#### Loop prevention
+
+Programmatic scroll application must not trigger immediate feedback loops. The receiving webview should set a short-lived guard while applying forwarded scroll updates, ignoring self-generated scroll events during that window.
+
+#### Outline separation
+
+Outline sync and diff-pane sync should remain independent:
+
+- outline updates continue to reflect headings in the active pane
+- diff scroll messages should not reuse the outline message channel
+- scroll-to-heading behavior remains one-pane local unless explicitly extended in future work
+
+## Testing Strategy
+
+### Unit tests
+
+Add coverage for:
+
+- sync control state transitions in autosave mode
+- sync control state transitions in manual-save mode
+- tooltip and class updates for each state
+- diff scroll message forwarding logic and loop prevention
+
+### Integration-oriented tests
+
+At the host boundary, validate:
+
+- confirmed edit updates drive the expected sync state
+- explicit save resets manual dirty state
+- diff-paired webviews receive forwarded scroll updates only from their counterpart
+
+### Regression checks
+
+Verify that:
+
+- preview/source switching still works
+- source-mode edits still propagate correctly
+- outline updates still function
+- autosave remains default `true`
+- single-pane editors do not receive unnecessary scroll messages
+
+## Risks And Mitigations
+
+### Risk: misleading sync state during fast consecutive edits
+
+Mitigation:
+
+Track confirmation against the latest known version and avoid returning to `synced` if a newer local edit has already been posted.
+
+### Risk: diff scroll jitter or feedback loops
+
+Mitigation:
+
+Use normalized ratios, debounce outbound scroll messages modestly, and guard programmatic scroll updates.
+
+### Risk: toolbar overcrowding
+
+Mitigation:
+
+Keep the right-side sync control icon-first and compact, and preserve the existing two-mode structure rather than adding more controls.
+
+## Implementation Outline
+
+1. Replace the floating save button with a toolbar-based sync/save control and introduce explicit sync states in the webview.
+2. Update host/webview coordination so saved updates clear autosave status correctly.
+3. Add toolbar icons and adjusted CSS/HTML structure.
+4. Implement diff-pane pairing and host-mediated scroll synchronization.
+5. Add regression tests for sync-state transitions and diff scroll behavior.
