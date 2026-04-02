@@ -192,7 +192,7 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
   </div>
   <div id="content-wrapper" role="main">
     <div id="blocks" aria-label="Document content"></div>
-    <div id="source-editor" aria-label="Source editor">
+    <div id="source-editor" aria-label="Source editor" hidden>
       <textarea id="source-textarea" spellcheck="false" aria-label="Markdown source"></textarea>
     </div>
   </div>
