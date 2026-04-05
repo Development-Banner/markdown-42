@@ -133,4 +133,42 @@ suite('MarkscapeEditor buildHtml tab bar', () => {
       /<div id="source-editor" aria-label="Source editor" hidden>\s*<textarea id="source-textarea" spellcheck="false" aria-label="Markdown source"><\/textarea>\s*<\/div>/
     );
   });
+
+  test('sync button is in the tab bar HTML', () => {
+    const html = buildHtml();
+    // Verify sync-btn appears after tab-bar opens and before content-wrapper
+    const tabBarIdx = html.indexOf('id="tab-bar"');
+    const syncBtnIdx = html.indexOf('id="sync-btn"');
+    const contentWrapperIdx = html.indexOf('id="content-wrapper"');
+    assert.ok(tabBarIdx !== -1, 'tab-bar div not found');
+    assert.ok(syncBtnIdx > tabBarIdx, 'sync-btn not found after tab-bar');
+    assert.ok(syncBtnIdx < contentWrapperIdx, 'sync-btn not inside tab-bar');
+  });
+
+  test('mode buttons are wrapped in a .mode-toggle pill container', () => {
+    const html = buildHtml();
+    assert.ok(html.includes('class="mode-toggle"'), html);
+  });
+
+  test('Preview tab has an SVG icon', () => {
+    const html = buildHtml();
+    // The tab-preview button must contain an SVG with class tab-icon
+    assert.ok(html.includes('tab-icon'), html);
+  });
+
+  test('sync-btn replaces save-btn in the tab bar', () => {
+    const html = buildHtml();
+    assert.ok(html.includes('id="sync-btn"'), html);
+    assert.ok(!html.includes('id="save-btn"'), 'save-btn should not exist');
+  });
+
+  test('sync-btn has initial data-state of saved', () => {
+    const html = buildHtml();
+    assert.ok(html.includes('data-state="saved"'), html);
+  });
+
+  test('sync-btn contains .sync-text span', () => {
+    const html = buildHtml();
+    assert.ok(html.includes('class="sync-text"'), html);
+  });
 });

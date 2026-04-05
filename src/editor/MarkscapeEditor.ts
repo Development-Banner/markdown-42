@@ -187,8 +187,21 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
 </head>
 <body>
   <div id="tab-bar" role="tablist" aria-label="Editor mode">
-    <button role="tab" aria-selected="true" data-mode="preview" id="tab-preview">Preview</button>
-    <button role="tab" aria-selected="false" data-mode="source" id="tab-source">Source</button>
+    <div class="mode-toggle">
+      <button role="tab" aria-selected="true" data-mode="preview" id="tab-preview">
+        <svg class="tab-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.5"/></svg>
+        Preview
+      </button>
+      <button role="tab" aria-selected="false" data-mode="source" id="tab-source">
+        <svg class="tab-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 4 1 8 5 12"/><polyline points="11 4 15 8 11 12"/></svg>
+        Source
+      </button>
+    </div>
+    <button id="sync-btn" type="button" data-state="saved" aria-label="Document sync status" title="Saved (Ctrl+S)">
+      <svg class="icon-check" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2 9 6 13 14 4"/></svg>
+      <svg class="icon-spin" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 2a6 6 0 1 1-6 6"/></svg>
+      <span class="sync-text">Saved</span>
+    </button>
   </div>
   <div id="content-wrapper" role="main">
     <div id="blocks" aria-label="Document content"></div>
