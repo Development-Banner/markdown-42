@@ -8092,29 +8092,31 @@
   var currentMode = "preview";
   var modeInitialized = false;
   var debounceTimer = null;
-  var hasUnsavedChanges = false;
-  function markUnsaved() {
-    if (hasUnsavedChanges) return;
-    hasUnsavedChanges = true;
-    saveBtn.classList.add("unsaved");
-    saveBtn.title = "Unsaved changes \u2014 click to save (Ctrl+S)";
+  var syncBtn = document.getElementById("sync-btn");
+  var syncText = syncBtn.querySelector(".sync-text");
+  var syncTimer = null;
+  function markSyncing() {
+    if (syncTimer) clearTimeout(syncTimer);
+    syncBtn.dataset["state"] = "syncing";
+    syncBtn.title = "Syncing\u2026 (Ctrl+S)";
+    syncText.textContent = "Syncing\u2026";
+    syncTimer = setTimeout(markSaved, 700);
   }
   function markSaved() {
-    hasUnsavedChanges = false;
-    saveBtn.classList.remove("unsaved");
-    saveBtn.title = "Save (Ctrl+S)";
+    syncTimer = null;
+    syncBtn.dataset["state"] = "saved";
+    syncBtn.title = "Saved (Ctrl+S)";
+    syncText.textContent = "Saved";
   }
   function triggerSave() {
     vscode.postMessage({ type: "save" });
-    markSaved();
+    markSyncing();
   }
   function postEdit(content) {
     vscode.postMessage({ type: "edit", content, version: localVersion });
-    markUnsaved();
+    markSyncing();
   }
-  var saveBtn = document.getElementById("save-btn");
-  saveBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="12" height="12" rx="1.5"/><rect x="5.5" y="2" width="5" height="4"/><circle cx="8" cy="10" r="2"/></svg>';
-  saveBtn.addEventListener("click", triggerSave);
+  syncBtn.addEventListener("click", triggerSave);
   window.addEventListener("message", ({ data }) => {
     switch (data.type) {
       case "update": {

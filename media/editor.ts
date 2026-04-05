@@ -29,42 +29,39 @@ let currentConfig: WebviewConfig = {
 let currentMode: 'preview' | 'source' = 'preview';
 let modeInitialized = false;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-let hasUnsavedChanges = false;
 
-// ─── Save indicator ─────────────────────────────────
+// ─── Sync indicator ─────────────────────────────────
 
-function markUnsaved(): void {
-  if (hasUnsavedChanges) return;
-  hasUnsavedChanges = true;
-  saveBtn.classList.add('unsaved');
-  saveBtn.title = 'Unsaved changes — click to save (Ctrl+S)';
+const syncBtn = document.getElementById('sync-btn') as HTMLButtonElement;
+const syncText = syncBtn.querySelector('.sync-text') as HTMLSpanElement;
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+
+function markSyncing(): void {
+  if (syncTimer) clearTimeout(syncTimer);
+  syncBtn.dataset['state'] = 'syncing';
+  syncBtn.title = 'Syncing… (Ctrl+S)';
+  syncText.textContent = 'Syncing\u2026';
+  syncTimer = setTimeout(markSaved, 700);
 }
 
 function markSaved(): void {
-  hasUnsavedChanges = false;
-  saveBtn.classList.remove('unsaved');
-  saveBtn.title = 'Save (Ctrl+S)';
+  syncTimer = null;
+  syncBtn.dataset['state'] = 'saved';
+  syncBtn.title = 'Saved (Ctrl+S)';
+  syncText.textContent = 'Saved';
 }
 
 function triggerSave(): void {
   vscode.postMessage({ type: 'save' });
-  markSaved();
+  markSyncing();
 }
 
 function postEdit(content: string): void {
   vscode.postMessage({ type: 'edit', content, version: localVersion });
-  markUnsaved();
+  markSyncing();
 }
 
-// ─── Save button ────────────────────────────────────
-
-const saveBtn = document.createElement('button');
-saveBtn.id = 'save-btn';
-saveBtn.title = 'Save (Ctrl+S)';
-saveBtn.setAttribute('aria-label', 'Save file');
-saveBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M13.353 1.146l1.5 1.5A.5.5 0 0 1 15 3v11.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 .5-.5H13a.5.5 0 0 1 .353.146zM10 2H6v3h4V2zm1 0v3.5a.5.5 0 0 1-.5.5h-5a.5.5 0 0 1-.5-.5V2H2v12h12V3.207L12.793 2H11zm-3 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0-1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>';
-saveBtn.addEventListener('click', triggerSave);
-document.body.appendChild(saveBtn);
+syncBtn.addEventListener('click', triggerSave);
 
 // ─── Message handling ──────────────────────────────────
 
