@@ -8112,13 +8112,9 @@
     vscode.postMessage({ type: "edit", content, version: localVersion });
     markUnsaved();
   }
-  var saveBtn = document.createElement("button");
-  saveBtn.id = "save-btn";
-  saveBtn.title = "Save (Ctrl+S)";
-  saveBtn.setAttribute("aria-label", "Save file");
-  saveBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M13.353 1.146l1.5 1.5A.5.5 0 0 1 15 3v11.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 .5-.5H13a.5.5 0 0 1 .353.146zM10 2H6v3h4V2zm1 0v3.5a.5.5 0 0 1-.5.5h-5a.5.5 0 0 1-.5-.5V2H2v12h12V3.207L12.793 2H11zm-3 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0-1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>';
+  var saveBtn = document.getElementById("save-btn");
+  saveBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="12" height="12" rx="1.5"/><rect x="5.5" y="2" width="5" height="4"/><circle cx="8" cy="10" r="2"/></svg>';
   saveBtn.addEventListener("click", triggerSave);
-  document.body.appendChild(saveBtn);
   window.addEventListener("message", ({ data }) => {
     switch (data.type) {
       case "update": {

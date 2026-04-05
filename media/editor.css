@@ -80,6 +80,27 @@ body {
   position: relative;
 }
 
+#blocks[data-empty="true"] {
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed color-mix(in srgb, var(--vscode-panel-border) 70%, transparent);
+  border-radius: 12px;
+  margin-top: var(--sp-5);
+  padding: var(--sp-6);
+  text-align: center;
+}
+
+#blocks[data-empty="true"]::before {
+  content: attr(data-empty-message);
+  max-width: 32ch;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--font-body);
+  font-size: 0.95em;
+  line-height: 1.7;
+}
+
 /* Subtle vertical rule — gives a document feel */
 #content-wrapper::before {
   content: '';
@@ -154,41 +175,70 @@ body {
   top: 0;
   z-index: 50;
   display: flex;
-  gap: 2px;
+  align-items: center;
+  gap: var(--sp-3);
   padding: var(--sp-2) var(--sp-4);
-  background: var(--vscode-editor-background);
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--vscode-panel-border);
 }
 
-#tab-bar button {
-  padding: var(--sp-1) var(--sp-4);
-  border: 1px solid transparent;
-  border-radius: 4px;
+/* ── Segmented pill toggle ─────────────────────── */
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 70%, transparent);
+  border-radius: 20px;
+  padding: 2px;
+}
+
+.mode-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 3px var(--sp-3);
+  border: none;
+  border-radius: 16px;
   background: transparent;
   color: var(--vscode-descriptionForeground);
   font-family: var(--font-body);
   font-size: 0.8em;
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   cursor: pointer;
   transition:
     background var(--dur-fast) var(--ease-snap),
-    color var(--dur-fast) var(--ease-snap),
-    border-color var(--dur-fast) var(--ease-snap);
+    color var(--dur-fast) var(--ease-snap);
 }
 
-#tab-bar button:hover {
-  background: var(--vscode-list-hoverBackground);
+.mode-toggle button .tab-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity var(--dur-fast) var(--ease-snap);
+}
+
+.mode-toggle button:hover {
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 80%, transparent);
   color: var(--vscode-editor-foreground);
 }
 
-#tab-bar button[aria-selected="true"] {
-  background: color-mix(in srgb, var(--vscode-focusBorder) 15%, var(--vscode-editor-background));
-  border-color: color-mix(in srgb, var(--vscode-focusBorder) 40%, transparent);
-  color: var(--vscode-editor-foreground);
+.mode-toggle button:hover .tab-icon {
+  opacity: 1;
 }
 
-#tab-bar button:focus-visible {
+.mode-toggle button[aria-selected="true"] {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.mode-toggle button[aria-selected="true"] .tab-icon {
+  opacity: 1;
+}
+
+.mode-toggle button:focus-visible {
   outline: 2px solid var(--vscode-focusBorder);
   outline-offset: 2px;
 }
@@ -780,58 +830,68 @@ del {
 }
 
 /* ═══════════════════════════════════════════════════
-   SAVE BUTTON — floating bottom-right
+   SYNC STATUS INDICATOR — always visible, right-aligned
 ═══════════════════════════════════════════════════ */
-#save-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 100;
-  display: flex;
+@keyframes spin-ring {
+  to { transform: rotate(360deg); }
+}
+
+#sync-btn {
+  margin-left: auto;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--vscode-panel-border);
-  background: var(--vscode-editor-background);
+  gap: 5px;
+  padding: 3px var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: transparent;
   color: var(--vscode-descriptionForeground);
+  font-family: var(--font-body);
+  font-size: 0.78em;
+  font-weight: 500;
+  letter-spacing: 0.03em;
   cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
+  flex-shrink: 0;
   transition:
-    opacity var(--dur-mid) var(--ease-snap),
     background var(--dur-fast) var(--ease-snap),
     color var(--dur-fast) var(--ease-snap),
-    box-shadow var(--dur-mid) var(--ease-snap);
+    border-color var(--dur-fast) var(--ease-snap);
 }
 
-#save-btn.unsaved {
-  opacity: 1;
-  pointer-events: auto;
-  color: var(--vscode-editor-foreground);
-  box-shadow: 0 2px 12px -2px color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
-}
-
-/* Unsaved dot indicator on the button */
-#save-btn.unsaved::after {
-  content: '';
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--vscode-notificationsWarningIcon-foreground, var(--vscode-focusBorder));
-}
-
-#save-btn:hover {
+#sync-btn:hover {
   background: var(--vscode-list-hoverBackground);
   color: var(--vscode-editor-foreground);
+  border-color: color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
 }
 
-#save-btn:active {
+#sync-btn:active {
   background: var(--vscode-list-activeSelectionBackground);
+}
+
+#sync-btn:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+/* Icons: only one shown at a time based on data-state */
+#sync-btn .icon-check,
+#sync-btn .icon-spin {
+  display: none;
+  flex-shrink: 0;
+}
+
+#sync-btn[data-state="saved"] .icon-check {
+  display: block;
+}
+
+#sync-btn[data-state="syncing"] .icon-spin {
+  display: block;
+  animation: spin-ring 600ms linear infinite;
+  color: var(--vscode-focusBorder);
+}
+
+#sync-btn[data-state="syncing"] {
+  color: var(--vscode-focusBorder);
 }
 
 /* ═══════════════════════════════════════════════════
