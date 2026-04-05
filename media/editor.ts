@@ -81,6 +81,7 @@ window.addEventListener('message', ({ data }: MessageEvent<HostToWebview>) => {
         }
         updateEmptyState(data.content, blocksContainer);
         sendOutline();
+        sendBlockList();
       } else {
         sourceTextarea.value = data.content;
       }
@@ -90,6 +91,19 @@ window.addEventListener('message', ({ data }: MessageEvent<HostToWebview>) => {
     case 'scrollTo': {
       const target = document.getElementById(`heading-${data.line}-0`);
       target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      break;
+    }
+
+    case 'scrollSync': {
+      _applyingRemoteScroll = true;
+      window.scrollTo({ top: data.scrollTop, behavior: 'instant' });
+      // Release the suppression flag after the scroll event has fired
+      setTimeout(() => { _applyingRemoteScroll = false; }, 120);
+      break;
+    }
+
+    case 'highlightDiff': {
+      applyDiffHighlight(data.changed, data.added, data.removed);
       break;
     }
 
@@ -132,6 +146,7 @@ function _activateEditMode(blockIndex: number): void {
         .join('\n\n');
       renderUpdate(newMarkdown, blocksContainer, handleBlockClick);
       sendOutline();
+      sendBlockList();
       // scheduleSend reads _renderedBlocks after renderUpdate has updated it
       scheduleSend();
     },
@@ -188,26 +203,69 @@ function sendOutline(): void {
   vscode.postMessage({ type: 'outline', headings });
 }
 
-// ─── Scroll sync (outline highlight) ──────────────────
+// ─── Block list (for diff highlighting) ───────────────
+
+function sendBlockList(): void {
+  const blocks = getRenderedBlocks().map(b => b.raw);
+  vscode.postMessage({ type: 'blockList', blocks });
+}
+
+// ─── Diff highlight ─────────────────────────────────────
+
+/**
+ * Apply diff highlight CSS classes to block elements.
+ * Classes are cleared first so re-runs are idempotent.
+ */
+function applyDiffHighlight(
+  changed: number[],
+  added: number[],
+  removed: number[]
+): void {
+  // Clear all previous diff classes in one pass
+  const allBlocks = blocksContainer.querySelectorAll<HTMLElement>('.block');
+  for (const el of allBlocks) {
+    el.classList.remove('diff-changed', 'diff-added', 'diff-removed');
+  }
+
+  const getBlock = (i: number): HTMLElement | null =>
+    blocksContainer.querySelector<HTMLElement>(`[data-block-index="${i}"]`);
+
+  for (const i of changed) { getBlock(i)?.classList.add('diff-changed'); }
+  for (const i of added)   { getBlock(i)?.classList.add('diff-added');   }
+  for (const i of removed) { getBlock(i)?.classList.add('diff-removed'); }
+}
+
+// ─── Scroll sync ───────────────────────────────────────
+// Two roles:
+//   1. Outline highlight (existing) — fires sendOutline on scroll
+//   2. Diff panel sync (new) — sends scrollTop to host for relay to sibling panel
+
+/** Set to true while applying a scroll command from the host to prevent feedback loops. */
+let _applyingRemoteScroll = false;
 
 let scrollTimer: ReturnType<typeof setTimeout> | null = null;
 window.addEventListener('scroll', () => {
-  if (!currentConfig.syncScrollOutline) return;
   if (scrollTimer) clearTimeout(scrollTimer);
   scrollTimer = setTimeout(() => {
-    // Find the topmost visible heading
-    const headingEls = blocksContainer.querySelectorAll<HTMLElement>(
-      'h1, h2, h3, h4, h5, h6'
-    );
-    for (const h of headingEls) {
-      const rect = h.getBoundingClientRect();
-      if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
-        // The outline panel is updated by re-sending the outline
-        sendOutline();
-        break;
+    // Outline sync
+    if (currentConfig.syncScrollOutline) {
+      const headingEls = blocksContainer.querySelectorAll<HTMLElement>(
+        'h1, h2, h3, h4, h5, h6'
+      );
+      for (const h of headingEls) {
+        const rect = h.getBoundingClientRect();
+        if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+          sendOutline();
+          break;
+        }
       }
     }
-  }, 100);
+
+    // Diff scroll sync — relay our position to sibling panel via host
+    if (!_applyingRemoteScroll) {
+      vscode.postMessage({ type: 'scrollSync', scrollTop: window.scrollY });
+    }
+  }, 80);
 }, { passive: true });
 
 // ─── Link interception ─────────────────────────────────
@@ -266,6 +324,7 @@ function switchMode(mode: 'preview' | 'source', scroll = true): void {
     renderAll(content, blocksContainer, handleBlockClick);
     updateEmptyState(content, blocksContainer);
     sendOutline();
+    sendBlockList();
     if (content !== previousContent) {
       postEdit(content);
     }

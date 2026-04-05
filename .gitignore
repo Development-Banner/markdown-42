@@ -5,3 +5,5 @@ out-test/
 .vscode-test/
 .claude/
 .worktrees/
+temp-*/
+temp-*.js

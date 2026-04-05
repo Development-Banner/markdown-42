@@ -192,9 +192,8 @@ suite('inlineEditor — DOM behavior', () => {
     test('entering edit mode on same block twice is a no-op', () => {
       const div = makeBlockDiv('<p>Para</p>', 9);
 
-      let commitCount = 0;
       const callbacks = {
-        onCommit: () => { commitCount++; },
+        onCommit: () => { /* noop */ },
         onCancel: () => { /* noop */ },
       };
 

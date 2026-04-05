@@ -25,11 +25,21 @@ esbuild.config.js
 node_modules/**
 coverage/**
 out-test/**
+.worktrees/**
+temp-*/**
+*.vsix
+temp-tabbar-only.js
 **/*.map
+package-lock.json
+AGENTS.md
+CLAUDE.md
+LEARNINGS.md
+HISTORY.md
 
 # Documentation and misc
 docs/**
 *.md
+!README.md
 !CHANGELOG.md
 PRD_markdown42.md.md
 

@@ -2,8 +2,8 @@
   "name": "markdown42",
   "displayName": "Markdown42 — Live Markdown Editor",
   "description": "Typora-style live markdown editor. Click any block to edit inline — no split panes. GitHub-accurate rendering, smart outline, copy button on code blocks, and instant preview/source toggle.",
-  "version": "0.1.0",
-  "publisher": "markdown42",
+  "version": "0.1.1",
+  "publisher": "Shaf",
   "license": "MIT",
   "repository": {
     "type": "git",

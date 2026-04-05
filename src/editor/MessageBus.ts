@@ -14,7 +14,9 @@ export type HostToWebview =
   | { type: 'update'; content: string; version: number; config: WebviewConfig }
   | { type: 'scrollTo'; line: number }
   | { type: 'setMode'; mode: 'preview' | 'source' }
-  | { type: 'configChange'; config: WebviewConfig };
+  | { type: 'configChange'; config: WebviewConfig }
+  | { type: 'scrollSync'; scrollTop: number }
+  | { type: 'highlightDiff'; changed: number[]; added: number[]; removed: number[] };
 
 export type WebviewToHost =
   | { type: 'edit'; content: string; version: number }
@@ -22,7 +24,9 @@ export type WebviewToHost =
   | { type: 'save' }
   | { type: 'outline'; headings: HeadingNode[] }
   | { type: 'openLink'; href: string }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | { type: 'scrollSync'; scrollTop: number }
+  | { type: 'blockList'; blocks: string[] };
 
 export interface WebviewConfig {
   fontSize: number;

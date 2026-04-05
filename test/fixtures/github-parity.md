@@ -6,7 +6,7 @@ All constructs that must render identically to GitHub Flavored Markdown.
 
 - [x] Done item
 - [ ] Pending item
-- [x] Another done item
+- [x] Another done items
 
 ## Tables
 

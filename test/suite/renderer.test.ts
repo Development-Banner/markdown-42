@@ -10,7 +10,7 @@ interface FakeElement {
   className: string;
   textContent: string;
   children: FakeElement[];
-  eventListeners: Record<string, Function[]>;
+  eventListeners: Record<string, (() => void)[]>;
   getAttribute(name: string): string | null;
   setAttribute(name: string, value: string): void;
   appendChild(child: FakeElement): void;
@@ -21,7 +21,7 @@ interface FakeElement {
 function makeFakeElement(tag: string): FakeElement {
   const attrs: Record<string, string> = {};
   const children: FakeElement[] = [];
-  const listeners: Record<string, Function[]> = {};
+  const listeners: Record<string, (() => void)[]> = {};
   const el: FakeElement = {
     tagName: tag.toUpperCase(),
     className: '',

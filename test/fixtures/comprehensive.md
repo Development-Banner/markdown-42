@@ -1,4 +1,4 @@
-# Markdown42 Comprehensive Test Fixture
+# Markdown42 Comprehensive Test Fixtures
 <!--
   Self-documenting fixture for automated testing.
   Every case is wrapped in TEST markers: TEST: category/id ... /TEST (using HTML comment syntax).

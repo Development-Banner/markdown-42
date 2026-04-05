@@ -830,6 +830,68 @@ del {
 }
 
 /* ═══════════════════════════════════════════════════
+   DIFF VIEW — Block-level change indicators
+   Shown when the file is open in VS Code's git diff
+   view. The host computes which blocks changed and
+   sends index lists; the webview applies these classes.
+═══════════════════════════════════════════════════ */
+
+/* Changed block — amber gutter, warm tint */
+.block.diff-changed {
+  border-left-color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 6%,
+    var(--vscode-editor-background)
+  );
+}
+
+/* Added block (right/modified side only) — green gutter, cool tint */
+.block.diff-added {
+  border-left-color: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-addedResourceForeground, #73c991) 6%,
+    var(--vscode-editor-background)
+  );
+}
+
+/* Removed block (left/original side only) — red gutter, cool tint */
+.block.diff-removed {
+  border-left-color: var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c);
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 6%,
+    var(--vscode-editor-background)
+  );
+}
+
+/* Hover state respects diff colours — just brighten the tint */
+.block.diff-changed:hover {
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 12%,
+    var(--vscode-editor-background)
+  );
+}
+
+.block.diff-added:hover {
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-addedResourceForeground, #73c991) 12%,
+    var(--vscode-editor-background)
+  );
+}
+
+.block.diff-removed:hover {
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 12%,
+    var(--vscode-editor-background)
+  );
+}
+
+/* ═══════════════════════════════════════════════════
    SYNC STATUS INDICATOR — always visible, right-aligned
 ═══════════════════════════════════════════════════ */
 @keyframes spin-ring {

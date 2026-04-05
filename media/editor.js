@@ -8131,6 +8131,7 @@
           }
           updateEmptyState(data.content, blocksContainer);
           sendOutline();
+          sendBlockList();
         } else {
           sourceTextarea.value = data.content;
         }
@@ -8139,6 +8140,18 @@
       case "scrollTo": {
         const target = document.getElementById(`heading-${data.line}-0`);
         target?.scrollIntoView({ behavior: "smooth", block: "start" });
+        break;
+      }
+      case "scrollSync": {
+        _applyingRemoteScroll = true;
+        window.scrollTo({ top: data.scrollTop, behavior: "instant" });
+        setTimeout(() => {
+          _applyingRemoteScroll = false;
+        }, 120);
+        break;
+      }
+      case "highlightDiff": {
+        applyDiffHighlight(data.changed, data.added, data.removed);
         break;
       }
       case "setMode": {
@@ -8164,6 +8177,7 @@
         const newMarkdown = blocks.map((b, i) => i === idx ? newRaw : b.raw).join("\n\n");
         renderUpdate(newMarkdown, blocksContainer, handleBlockClick);
         sendOutline();
+        sendBlockList();
         scheduleSend();
       },
       onCancel: (_idx) => {
@@ -8195,22 +8209,47 @@
     const headings = extractHeadings(blocksContainer);
     vscode.postMessage({ type: "outline", headings });
   }
+  function sendBlockList() {
+    const blocks = getRenderedBlocks().map((b) => b.raw);
+    vscode.postMessage({ type: "blockList", blocks });
+  }
+  function applyDiffHighlight(changed, added, removed) {
+    const allBlocks = blocksContainer.querySelectorAll(".block");
+    for (const el of allBlocks) {
+      el.classList.remove("diff-changed", "diff-added", "diff-removed");
+    }
+    const getBlock = (i) => blocksContainer.querySelector(`[data-block-index="${i}"]`);
+    for (const i of changed) {
+      getBlock(i)?.classList.add("diff-changed");
+    }
+    for (const i of added) {
+      getBlock(i)?.classList.add("diff-added");
+    }
+    for (const i of removed) {
+      getBlock(i)?.classList.add("diff-removed");
+    }
+  }
+  var _applyingRemoteScroll = false;
   var scrollTimer = null;
   window.addEventListener("scroll", () => {
-    if (!currentConfig.syncScrollOutline) return;
     if (scrollTimer) clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
-      const headingEls = blocksContainer.querySelectorAll(
-        "h1, h2, h3, h4, h5, h6"
-      );
-      for (const h of headingEls) {
-        const rect = h.getBoundingClientRect();
-        if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
-          sendOutline();
-          break;
+      if (currentConfig.syncScrollOutline) {
+        const headingEls = blocksContainer.querySelectorAll(
+          "h1, h2, h3, h4, h5, h6"
+        );
+        for (const h of headingEls) {
+          const rect = h.getBoundingClientRect();
+          if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+            sendOutline();
+            break;
+          }
         }
       }
-    }, 100);
+      if (!_applyingRemoteScroll) {
+        vscode.postMessage({ type: "scrollSync", scrollTop: window.scrollY });
+      }
+    }, 80);
   }, { passive: true });
   document.addEventListener("click", (e) => {
     const target = e.target;
@@ -8256,6 +8295,7 @@
       renderAll(content, blocksContainer, handleBlockClick);
       updateEmptyState(content, blocksContainer);
       sendOutline();
+      sendBlockList();
       if (content !== previousContent) {
         postEdit(content);
       }

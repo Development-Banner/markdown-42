@@ -6,8 +6,24 @@ import { getConfig, toWebviewConfig } from '../settings/config';
 import type { HostToWebview, WebviewToHost } from './MessageBus';
 import { setActiveModel } from '../extension';
 
+/** Entry in the per-filename panel registry used for diff scroll sync and highlighting. */
+interface PanelEntry {
+  readonly id: symbol;
+  send: (msg: HostToWebview) => void;
+  blocks: string[] | undefined;
+  /** true when the document comes from a non-file scheme (e.g. git://) — the "original" side */
+  readonly isOriginal: boolean;
+}
+
 export class Markdown42Editor implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'markdown42.editor';
+
+  /**
+   * Cross-instance registry: fileName → set of open panels for that file.
+   * Populated in resolveCustomTextEditor, cleaned up in onDidDispose.
+   * Enables diff view scroll sync and block-level diff highlighting.
+   */
+  private static readonly _panelRegistry = new Map<string, Set<PanelEntry>>();
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -86,6 +102,17 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
             // Log webview errors to the extension output, not the user's console
             console.error('[Markdown42 webview error]', msg.message);
             break;
+
+          case 'scrollSync':
+            // Relay scroll position to sibling panels (e.g. opposite side of diff)
+            relayToSiblings({ type: 'scrollSync', scrollTop: msg.scrollTop });
+            break;
+
+          case 'blockList':
+            // Store block list and recompute diff highlights when both sides are ready
+            panelEntry.blocks = msg.blocks;
+            broadcastDiff();
+            break;
         }
       }
     );
@@ -116,6 +143,74 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
     vscode.commands.executeCommand('setContext', 'markdown42EditorActive', true);
     vscode.commands.executeCommand('setContext', 'markdown42Active', true);
 
+    // ── Diff view: panel registry ─────────────────────────────────────────
+    // Register this panel so paired panels (e.g. git diff) can sync scrolling
+    // and exchange block lists for diff highlighting.
+    const panelKey = document.fileName;
+    const panelEntry: PanelEntry = {
+      id: Symbol(),
+      send,
+      blocks: undefined,
+      isOriginal: document.uri.scheme !== 'file',
+    };
+
+    if (!Markdown42Editor._panelRegistry.has(panelKey)) {
+      Markdown42Editor._panelRegistry.set(panelKey, new Set());
+    }
+    Markdown42Editor._panelRegistry.get(panelKey)!.add(panelEntry);
+
+    /** Broadcast a message to every other panel registered under the same key. */
+    const relayToSiblings = (msg: HostToWebview): void => {
+      const peers = Markdown42Editor._panelRegistry.get(panelKey);
+      if (!peers) return;
+      for (const peer of peers) {
+        if (peer.id !== panelEntry.id) {
+          peer.send(msg);
+        }
+      }
+    };
+
+    /** Compute a simple index-aligned block diff and push highlightDiff to both panels. */
+    const broadcastDiff = (): void => {
+      const peers = Markdown42Editor._panelRegistry.get(panelKey);
+      if (!peers || peers.size < 2) return;
+
+      // Find original (git://) and modified (file://) entries
+      let original: PanelEntry | undefined;
+      let modified: PanelEntry | undefined;
+      for (const p of peers) {
+        if (p.blocks === undefined) return; // not both rendered yet
+        if (p.isOriginal) { original = p; }
+        else { modified = p; }
+      }
+      if (!original?.blocks || !modified?.blocks) return;
+
+      const origBlocks = original.blocks;
+      const modBlocks = modified.blocks;
+      const maxLen = Math.max(origBlocks.length, modBlocks.length);
+
+      const changedOrig: number[] = [];
+      const changedMod: number[] = [];
+      const removed: number[] = []; // exist in original but not in modified
+      const added: number[] = [];   // exist in modified but not in original
+
+      for (let i = 0; i < maxLen; i++) {
+        const a = origBlocks[i];
+        const b = modBlocks[i];
+        if (a === undefined) {
+          added.push(i);
+        } else if (b === undefined) {
+          removed.push(i);
+        } else if (a !== b) {
+          changedOrig.push(i);
+          changedMod.push(i);
+        }
+      }
+
+      original.send({ type: 'highlightDiff', changed: changedOrig, added: [], removed });
+      modified.send({ type: 'highlightDiff', changed: changedMod, added, removed: [] });
+    };
+
     // Track which model is active so the single save command knows what to save
     let isActive = webviewPanel.active;
     if (isActive) {
@@ -130,6 +225,22 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
       if (isActive) {
         setActiveModel(null);
       }
+
+      // Remove from panel registry and clear diff highlights from siblings
+      const peers = Markdown42Editor._panelRegistry.get(panelKey);
+      if (peers) {
+        peers.delete(panelEntry);
+        if (peers.size === 0) {
+          Markdown42Editor._panelRegistry.delete(panelKey);
+        } else {
+          // Clear diff highlights on remaining sibling panels
+          for (const peer of peers) {
+            peer.send({ type: 'highlightDiff', changed: [], added: [], removed: [] });
+            peer.blocks = undefined;
+          }
+        }
+      }
+
       viewStateDisposable.dispose();
       messageDisposable.dispose();
       docChangeDisposable.dispose();
