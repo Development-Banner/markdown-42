@@ -26,13 +26,14 @@ export function getConfig(): Markdown42Config {
   };
 }
 
-export function toWebviewConfig(config: Markdown42Config): WebviewConfig {
+export function toWebviewConfig(config: Markdown42Config, readOnly = false): WebviewConfig {
   return {
     fontSize: config.fontSize,
     lineWidth: config.lineWidth,
     renderDelay: config.renderDelay,
     syncScrollOutline: config.syncScrollOutline,
     mode: config.defaultMode,
+    readOnly,
   };
 }
 

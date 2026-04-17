@@ -52,7 +52,6 @@
 
 html {
   font-size: var(--base-font-size);
-  scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -80,25 +79,87 @@ body {
   position: relative;
 }
 
-#blocks[data-empty="true"] {
-  min-height: 240px;
+/* ─── Empty state ──────────────────────────────────── */
+
+.empty-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px dashed color-mix(in srgb, var(--vscode-panel-border) 70%, transparent);
-  border-radius: 12px;
-  margin-top: var(--sp-5);
+  gap: var(--sp-5);
+  min-height: 320px;
+  margin-top: var(--sp-8);
   padding: var(--sp-6);
   text-align: center;
+  animation: emptyStateFadeIn 400ms var(--ease-out) both;
 }
 
-#blocks[data-empty="true"]::before {
-  content: attr(data-empty-message);
-  max-width: 32ch;
+@keyframes emptyStateFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-state {
+    animation: none;
+  }
+  .empty-state-character {
+    animation: none !important;
+  }
+}
+
+.empty-state-character {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.7;
+  animation: ghostPenBob 3s ease-in-out infinite;
+}
+
+@keyframes ghostPenBob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.empty-state-quote {
+  max-width: 36ch;
+  margin: 0;
   color: var(--vscode-descriptionForeground);
   font-family: var(--font-body);
-  font-size: 0.95em;
+  font-size: 1.05em;
   line-height: 1.7;
+  font-style: italic;
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  justify-content: center;
+  margin-top: var(--sp-2);
+}
+
+.empty-state-btn {
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-family: var(--font-body);
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out),
+              border-color var(--dur-mid) var(--ease-snap),
+              background var(--dur-mid) var(--ease-snap);
+}
+
+.empty-state-btn:hover {
+  transform: scale(1.03);
+  border-color: var(--vscode-focusBorder);
+  background: color-mix(in srgb, var(--vscode-focusBorder) 10%, transparent);
+}
+
+.empty-state-btn:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
 }
 
 /* Subtle vertical rule — gives a document feel */
@@ -131,7 +192,7 @@ body {
 #source-editor {
   display: none; /* hidden by default; JS adds .source-visible to show */
   height: 100vh;
-  padding: var(--sp-6) var(--sp-8);
+  padding: var(--sp-4) var(--sp-2);
   flex-direction: column;
   overflow: hidden;
 }
@@ -836,41 +897,99 @@ del {
    sends index lists; the webview applies these classes.
 ═══════════════════════════════════════════════════ */
 
-/* Changed block — amber gutter, warm tint */
+/* ── Diff indicators match VS Code's native diff editor aesthetic ── */
+
+/* Changed block — amber gutter + warm tint + label */
 .block.diff-changed {
-  border-left-color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+  border-left: 3px solid var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
   background: color-mix(
     in srgb,
-    var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 6%,
+    var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 14%,
     var(--vscode-editor-background)
   );
+  position: relative;
 }
 
-/* Added block (right/modified side only) — green gutter, cool tint */
+.block.diff-changed::before {
+  content: 'Modified';
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.65em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Added block — green gutter + green tint + label */
 .block.diff-added {
-  border-left-color: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+  border-left: 3px solid var(--vscode-gitDecoration-addedResourceForeground, #73c991);
   background: color-mix(
     in srgb,
-    var(--vscode-gitDecoration-addedResourceForeground, #73c991) 6%,
+    var(--vscode-gitDecoration-addedResourceForeground, #73c991) 14%,
     var(--vscode-editor-background)
   );
+  position: relative;
 }
 
-/* Removed block (left/original side only) — red gutter, cool tint */
+.block.diff-added::before {
+  content: 'Added';
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.65em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Removed block — red gutter + red tint + label + strikethrough */
 .block.diff-removed {
-  border-left-color: var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c);
+  border-left: 3px solid var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c);
   background: color-mix(
     in srgb,
-    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 6%,
+    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 14%,
     var(--vscode-editor-background)
+  );
+  opacity: 0.85;
+  position: relative;
+  text-decoration: line-through;
+  text-decoration-color: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 40%,
+    transparent
   );
 }
 
-/* Hover state respects diff colours — just brighten the tint */
+.block.diff-removed::before {
+  content: 'Removed';
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.65em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c);
+  opacity: 0.7;
+  pointer-events: none;
+  text-decoration: none;
+}
+
+/* Hover: slightly brighten tint */
 .block.diff-changed:hover {
   background: color-mix(
     in srgb,
-    var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 12%,
+    var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 20%,
     var(--vscode-editor-background)
   );
 }
@@ -878,7 +997,7 @@ del {
 .block.diff-added:hover {
   background: color-mix(
     in srgb,
-    var(--vscode-gitDecoration-addedResourceForeground, #73c991) 12%,
+    var(--vscode-gitDecoration-addedResourceForeground, #73c991) 20%,
     var(--vscode-editor-background)
   );
 }
@@ -886,8 +1005,50 @@ del {
 .block.diff-removed:hover {
   background: color-mix(
     in srgb,
-    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 12%,
+    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 20%,
     var(--vscode-editor-background)
+  );
+  opacity: 1;
+}
+
+/* ── Gap markers — show where blocks are missing ── */
+.diff-gap {
+  padding: 6px 16px;
+  margin: 2px 0;
+  font-family: var(--font-mono);
+  font-size: 0.75em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.diff-gap--removed {
+  color: var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c);
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 8%,
+    var(--vscode-editor-background)
+  );
+  border: 1px dashed color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 30%,
+    transparent
+  );
+}
+
+.diff-gap--added {
+  color: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-addedResourceForeground, #73c991) 8%,
+    var(--vscode-editor-background)
+  );
+  border: 1px dashed color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-addedResourceForeground, #73c991) 30%,
+    transparent
   );
 }
 
@@ -954,6 +1115,66 @@ del {
 
 #sync-btn[data-state="syncing"] {
   color: var(--vscode-focusBorder);
+}
+
+/* ═══════════════════════════════════════════════════
+   READ-ONLY MODE — Original side of git diff view
+   Disables all edit affordances: no pencil icon, no
+   hover accent, no save button, no text cursor.
+═══════════════════════════════════════════════════ */
+body.read-only .block {
+  cursor: default;
+}
+
+body.read-only .block::after {
+  display: none; /* hide ✎ pencil icon */
+}
+
+body.read-only .block:hover {
+  background: transparent;
+  border-left-color: transparent;
+}
+
+/* Diff blocks keep their tint on hover but lose the brightened variant */
+body.read-only .block.diff-changed:hover {
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 14%,
+    var(--vscode-editor-background)
+  );
+}
+
+body.read-only .block.diff-added:hover {
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-addedResourceForeground, #73c991) 14%,
+    var(--vscode-editor-background)
+  );
+}
+
+body.read-only .block.diff-removed:hover {
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 14%,
+    var(--vscode-editor-background)
+  );
+  opacity: 0.85;
+}
+
+/* Labels stay visible in read-only mode */
+body.read-only .block.diff-changed::before,
+body.read-only .block.diff-added::before,
+body.read-only .block.diff-removed::before {
+  display: block;
+}
+
+body.read-only #sync-btn {
+  display: none;
+}
+
+body.read-only #source-textarea {
+  opacity: 0.7;
+  cursor: default;
 }
 
 /* ═══════════════════════════════════════════════════

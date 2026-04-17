@@ -8076,6 +8076,167 @@
     delete blocksContainer2.dataset["emptyMessage"];
   }
 
+  // media/emptyStateQuotes.ts
+  var EMPTY_STATE_QUOTES = [
+    "Start with a heading. Or don't. We won't judge.",
+    "This page is technically infinite. No pressure.",
+    "The backspace key works too. Just saying.",
+    "Markdown: because HTML has too many angle brackets.",
+    "You're one # away from greatness.",
+    "An empty page walks into a bar. The bartender says, 'No body?'",
+    "The cursor blinks. The page waits. A love story.",
+    "Your future README starts here.",
+    "Plot twist: the real content was the friends we made along the way.",
+    "Tip: words go here.",
+    "In the beginning, there was nothing. Then someone pressed a key.",
+    "This space intentionally left blank. For now.",
+    "A journey of a thousand words begins with a single keystroke.",
+    "Fun fact: this editor won't judge your grammar. Mostly.",
+    "Type something. Anything. The page believes in you.",
+    "Roses are red, violets are blue, this page is empty, and waiting for you.",
+    "Welcome. The page is your oyster. Or canvas. Or whatever metaphor you prefer.",
+    "Psst. The source mode is where the magic happens.",
+    "You miss 100% of the headings you don't type.",
+    "Today's forecast: a blank page with a chance of brilliance.",
+    "Breaking news: local page still empty. More at 11.",
+    "This page has been staring at you for 0 seconds.",
+    "No content detected. Deploying motivational quote.",
+    "Achievement unlocked: opened an empty file.",
+    "Error 404: content not found. Just kidding. Start typing.",
+    "The pen is mightier than the sword. The keyboard is mightier than both.",
+    "Warning: writing may lead to satisfaction.",
+    "Blank pages are just documents with commitment issues.",
+    "Three backticks walk into a bar. The rest is fenced off.",
+    "Some call it empty. We call it full of potential.",
+    "Protip: Ctrl+` toggles source mode. You're welcome.",
+    "What's the markdown for a blank stare? Asking for a friend.",
+    "This page is minimalist by default. Maximalist by choice.",
+    "A wise dev once said: 'Just start typing.'",
+    "This is your page. There are many like it, but this one is yours.",
+    "Every great document started as an empty file.",
+    "The only thing standing between you and a great doc is a keystroke.",
+    "Loading content... just kidding, that's your job.",
+    "Friendly reminder: you can't save what doesn't exist yet.",
+    "Bold move opening an empty file. We respect that.",
+    "Behind every great project is a README that was once this empty.",
+    "Your words here could change the world. Or at least confuse a coworker.",
+    "A blank page is like a fresh cup of coffee \u2014 full of possibility.",
+    "This page is judging you silently. Write something already.",
+    "Psst \u2014 try ## for a subheading. It's life-changing.",
+    "The page patiently waits. It has nowhere else to be.",
+    "You opened this file on purpose, right?",
+    "Unwritten content: the dark matter of documentation.",
+    "Writer's block? Try writing 'Hello World'. Classic for a reason.",
+    "This file is as empty as a promise to update the docs.",
+    "One does not simply leave a markdown file empty.",
+    "Pages written today: 0. But who's counting?",
+    "Even Shakespeare started with a blank page. Probably.",
+    "Fun fact: you can't have typos if you haven't typed anything.",
+    "Idle thought: what if the content was inside us all along?",
+    "Markdown tip: # is for headings, not existential crises.",
+    "You know what would look great here? Words.",
+    "Currently buffering... content needed.",
+    "This emptiness is a feature, not a bug.",
+    "Write first, edit later. That's what Ctrl+Z is for.",
+    "Abandon all blankness, ye who enter here.",
+    "Table for one? Try the table template below.",
+    "Congratulations! You've found the world's most patient page.",
+    "This page is a canvas. Your keyboard is the brush. We'll stop now.",
+    "Life is short. Write the docs.",
+    "Ah, the sweet sound of nothing. Type to ruin it.",
+    "Still empty? This page will wait. It's very polite.",
+    "Your keyboard has over 100 keys. Any one of them works here.",
+    "To write, or not to write. That's not even a question here.",
+    "Step 1: Type. Step 2: There is no step 2.",
+    "Empty pages don't write themselves. Yet.",
+    "If you stare at the page long enough, it stares back.",
+    "This page rates your content 10/10. It hasn't seen any yet, but it's optimistic.",
+    "Plot twist: the page was inside you all along.",
+    "Your magnum opus starts with a single character.",
+    "Knock knock. Who's there? Not your content, apparently.",
+    "This document has great potential. Like, literally nothing but potential.",
+    "Somewhere, a technical writer just felt a disturbance in the force.",
+    "The blank page: nature's way of saying 'your turn'.",
+    "README? More like READ-ME-WHEN-I-EXIST.",
+    "Hot take: empty files deserve love too.",
+    "0 words written. Infinity words to go.",
+    "Current word count: aspirational.",
+    "This page is powered by good intentions and zero content.",
+    "Your future self will thank you for writing this. Probably.",
+    "Markdown: turning # into headings since 2004.",
+    "If this page were a restaurant, the menu would be blank.",
+    "Write like no one is reading. Because no one is. Yet.",
+    "Fun fact: the average markdown file is not this empty.",
+    "This is either a blank page or modern art. You decide.",
+    "Caution: contents may shift during editing.",
+    "Draft zero: the bravest draft of all.",
+    "All dressed up with no content to show.",
+    "The void gazes back. It suggests a heading.",
+    "Two roads diverged in an empty file. Both lead to source mode.",
+    "This isn't writer's block. It's a creative pause.",
+    "Somewhere out there, a heading is waiting to be written.",
+    "Keep calm and write markdown.",
+    "First rule of empty pages: you do not talk about empty pages.",
+    "May the source be with you.",
+    "Git commit -m 'added nothing'. We've all been there."
+  ];
+
+  // media/emptyState.ts
+  var GHOST_PEN_SVG = `<svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <!-- Ghost body -->
+  <path d="M20 52 C20 52 20 58 24 58 C28 58 28 52 32 52 C36 52 36 58 40 58 C44 58 44 52 44 52 L44 24 C44 17.4 38.6 12 32 12 C25.4 12 20 17.4 20 24 Z"
+        fill="currentColor" opacity="0.13"/>
+  <!-- Ghost outline -->
+  <path d="M20 52 C20 52 20 58 24 58 C28 58 28 52 32 52 C36 52 36 58 40 58 C44 58 44 52 44 52 L44 24 C44 17.4 38.6 12 32 12 C25.4 12 20 17.4 20 24 Z"
+        stroke="currentColor" stroke-width="2" fill="none" opacity="0.5"/>
+  <!-- Eyes -->
+  <circle cx="27" cy="28" r="2.5" fill="currentColor" opacity="0.6"/>
+  <circle cx="37" cy="28" r="2.5" fill="currentColor" opacity="0.6"/>
+  <!-- Pen nib -->
+  <path d="M32 36 L28 48 L32 46 L36 48 Z"
+        fill="currentColor" opacity="0.4"/>
+  <!-- Pen tip -->
+  <line x1="32" y1="46" x2="32" y2="52" stroke="currentColor" stroke-width="1.5" opacity="0.3" stroke-linecap="round"/>
+</svg>`;
+  function defaultPickQuote(quotes) {
+    return quotes[Math.floor(Math.random() * quotes.length)];
+  }
+  function createEmptyState(container, readOnly, onAction, pickQuote = defaultPickQuote) {
+    if (container.querySelector(".empty-state")) return;
+    const wrapper = container.ownerDocument.createElement("div");
+    wrapper.className = "empty-state";
+    const character = container.ownerDocument.createElement("div");
+    character.className = "empty-state-character";
+    character.innerHTML = GHOST_PEN_SVG;
+    wrapper.appendChild(character);
+    const quote = container.ownerDocument.createElement("p");
+    quote.className = "empty-state-quote";
+    quote.textContent = readOnly ? "Nothing here." : pickQuote(EMPTY_STATE_QUOTES);
+    wrapper.appendChild(quote);
+    if (!readOnly) {
+      const actions = container.ownerDocument.createElement("div");
+      actions.className = "empty-state-actions";
+      const buttons = [
+        { label: "Start writing", action: "start-writing" },
+        { label: "Basic structure", action: "basic-structure" },
+        { label: "Table template", action: "table-template" }
+      ];
+      for (const { label, action } of buttons) {
+        const btn = container.ownerDocument.createElement("button");
+        btn.className = "empty-state-btn";
+        btn.textContent = label;
+        btn.addEventListener("click", () => onAction(action));
+        actions.appendChild(btn);
+      }
+      wrapper.appendChild(actions);
+    }
+    container.appendChild(wrapper);
+  }
+  function destroyEmptyState(container) {
+    const el = container.querySelector(".empty-state");
+    if (el) el.remove();
+  }
+
   // media/editor.ts
   var vscode = acquireVsCodeApi();
   var blocksContainer = document.getElementById("blocks");
@@ -8087,7 +8248,8 @@
     lineWidth: 860,
     renderDelay: 150,
     syncScrollOutline: true,
-    mode: "preview"
+    mode: "preview",
+    readOnly: false
   };
   var currentMode = "preview";
   var modeInitialized = false;
@@ -8109,14 +8271,47 @@
     syncText.textContent = "Saved";
   }
   function triggerSave() {
+    if (currentConfig.readOnly) return;
     vscode.postMessage({ type: "save" });
     markSyncing();
   }
   function postEdit(content) {
+    if (currentConfig.readOnly) return;
     vscode.postMessage({ type: "edit", content, version: localVersion });
     markSyncing();
   }
   syncBtn.addEventListener("click", triggerSave);
+  var TEMPLATE_BASIC = `# Title
+
+Your content here.
+
+## Section
+
+More content.`;
+  var TEMPLATE_TABLE = `# Table
+
+| Column 1 | Column 2 | Column 3 |
+|----------|----------|----------|
+| Data     | Data     | Data     |
+| Data     | Data     | Data     |`;
+  function handleEmptyStateAction(action) {
+    if (action === "start-writing") {
+      switchMode("source");
+      return;
+    }
+    const template = action === "basic-structure" ? TEMPLATE_BASIC : TEMPLATE_TABLE;
+    renderAll(template, blocksContainer, handleBlockClick);
+    postEdit(template);
+    switchMode("source");
+  }
+  function syncEmptyState(content) {
+    updateEmptyState(content, blocksContainer);
+    if (blocksContainer.dataset["empty"] === "true") {
+      createEmptyState(blocksContainer, !!currentConfig.readOnly, handleEmptyStateAction);
+    } else {
+      destroyEmptyState(blocksContainer);
+    }
+  }
   window.addEventListener("message", ({ data }) => {
     switch (data.type) {
       case "update": {
@@ -8129,7 +8324,7 @@
           } else {
             renderAll(data.content, blocksContainer, handleBlockClick);
           }
-          updateEmptyState(data.content, blocksContainer);
+          syncEmptyState(data.content);
           sendOutline();
           sendBlockList();
         } else {
@@ -8147,15 +8342,15 @@
         window.scrollTo({ top: data.scrollTop, behavior: "instant" });
         setTimeout(() => {
           _applyingRemoteScroll = false;
-        }, 120);
+        }, 50);
         break;
       }
       case "highlightDiff": {
-        applyDiffHighlight(data.changed, data.added, data.removed);
+        applyDiffHighlight(data.changed, data.added, data.removed, data.gaps);
         break;
       }
       case "setMode": {
-        switchMode(data.mode);
+        switchMode(data.mode, true, false);
         break;
       }
       case "configChange": {
@@ -8190,6 +8385,7 @@
     }, currentConfig.renderDelay);
   }
   function handleBlockClick(blockIndex) {
+    if (currentConfig.readOnly) return;
     if (isEditing() && getActiveBlockIndex() === blockIndex) return;
     if (isEditing()) {
       commitActiveEdit();
@@ -8213,10 +8409,13 @@
     const blocks = getRenderedBlocks().map((b) => b.raw);
     vscode.postMessage({ type: "blockList", blocks });
   }
-  function applyDiffHighlight(changed, added, removed) {
+  function applyDiffHighlight(changed, added, removed, gaps) {
     const allBlocks = blocksContainer.querySelectorAll(".block");
     for (const el of allBlocks) {
       el.classList.remove("diff-changed", "diff-added", "diff-removed");
+    }
+    for (const gap of blocksContainer.querySelectorAll(".diff-gap")) {
+      gap.remove();
     }
     const getBlock = (i) => blocksContainer.querySelector(`[data-block-index="${i}"]`);
     for (const i of changed) {
@@ -8228,13 +8427,33 @@
     for (const i of removed) {
       getBlock(i)?.classList.add("diff-removed");
     }
+    for (const gap of gaps) {
+      const marker = document.createElement("div");
+      marker.className = "diff-gap";
+      const isRemoved = removed.length > 0 || added.length === 0;
+      marker.classList.add(isRemoved ? "diff-gap--removed" : "diff-gap--added");
+      const label = isRemoved ? `${gap.count} block${gap.count > 1 ? "s" : ""} removed` : `${gap.count} block${gap.count > 1 ? "s" : ""} added`;
+      marker.textContent = label;
+      marker.setAttribute("aria-label", label);
+      if (gap.afterIndex === -1) {
+        blocksContainer.insertBefore(marker, blocksContainer.firstChild);
+      } else {
+        const anchor = getBlock(gap.afterIndex);
+        if (anchor?.nextSibling) {
+          blocksContainer.insertBefore(marker, anchor.nextSibling);
+        } else {
+          blocksContainer.appendChild(marker);
+        }
+      }
+    }
   }
   var _applyingRemoteScroll = false;
-  var scrollTimer = null;
+  var _outlineScrollTimer = null;
+  var _scrollSyncRafId = null;
   window.addEventListener("scroll", () => {
-    if (scrollTimer) clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => {
-      if (currentConfig.syncScrollOutline) {
+    if (currentConfig.syncScrollOutline) {
+      if (_outlineScrollTimer) clearTimeout(_outlineScrollTimer);
+      _outlineScrollTimer = setTimeout(() => {
         const headingEls = blocksContainer.querySelectorAll(
           "h1, h2, h3, h4, h5, h6"
         );
@@ -8245,11 +8464,15 @@
             break;
           }
         }
-      }
-      if (!_applyingRemoteScroll) {
+      }, 80);
+    }
+    if (!_applyingRemoteScroll) {
+      if (_scrollSyncRafId !== null) cancelAnimationFrame(_scrollSyncRafId);
+      _scrollSyncRafId = requestAnimationFrame(() => {
+        _scrollSyncRafId = null;
         vscode.postMessage({ type: "scrollSync", scrollTop: window.scrollY });
-      }
-    }, 80);
+      });
+    }
   }, { passive: true });
   document.addEventListener("click", (e) => {
     const target = e.target;
@@ -8271,10 +8494,11 @@
       triggerSave();
     }
   });
-  function switchMode(mode, scroll = true) {
+  function switchMode(mode, scroll = true, relay = true) {
     if (scroll) window.scrollTo(0, 0);
     updateTabBar(mode);
     currentMode = mode;
+    if (relay) vscode.postMessage({ type: "modeChange", mode });
     if (mode === "source") {
       const content = getSourceModeContent(
         isEditing(),
@@ -8293,7 +8517,7 @@
       }
       const content = sourceTextarea.value;
       renderAll(content, blocksContainer, handleBlockClick);
-      updateEmptyState(content, blocksContainer);
+      syncEmptyState(content);
       sendOutline();
       sendBlockList();
       if (content !== previousContent) {
@@ -8326,6 +8550,8 @@
     const root = document.documentElement;
     root.style.setProperty("--content-width", `${config2.lineWidth}px`);
     root.style.setProperty("--base-font-size", `${config2.fontSize}px`);
+    document.body.classList.toggle("read-only", !!config2.readOnly);
+    sourceTextarea.readOnly = !!config2.readOnly;
     if (!modeInitialized) {
       modeInitialized = true;
       if (config2.mode !== currentMode) {

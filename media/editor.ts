@@ -5,6 +5,7 @@ import { renderAll, renderUpdate, extractHeadings, getRenderedBlocks, serializeC
 import { enterEditMode, isEditing, getActiveBlockIndex, commitActiveEdit } from './inlineEditor';
 import type { HostToWebview, WebviewToHost, WebviewConfig } from '../src/editor/MessageBus';
 import { applyModeVisibility, getSourceModeContent, updateEmptyState } from './modeHelpers';
+import { createEmptyState, destroyEmptyState, type EmptyStateAction } from './emptyState';
 
 // VS Code webview API — injected by the extension host
 declare function acquireVsCodeApi(): {
@@ -25,6 +26,7 @@ let currentConfig: WebviewConfig = {
   renderDelay: 150,
   syncScrollOutline: true,
   mode: 'preview',
+  readOnly: false,
 };
 let currentMode: 'preview' | 'source' = 'preview';
 let modeInitialized = false;
@@ -52,16 +54,55 @@ function markSaved(): void {
 }
 
 function triggerSave(): void {
+  if (currentConfig.readOnly) return;
   vscode.postMessage({ type: 'save' });
   markSyncing();
 }
 
 function postEdit(content: string): void {
+  if (currentConfig.readOnly) return;
   vscode.postMessage({ type: 'edit', content, version: localVersion });
   markSyncing();
 }
 
 syncBtn.addEventListener('click', triggerSave);
+
+// ─── Empty state ──────────────────────────────────────
+
+const TEMPLATE_BASIC = `# Title
+
+Your content here.
+
+## Section
+
+More content.`;
+
+const TEMPLATE_TABLE = `# Table
+
+| Column 1 | Column 2 | Column 3 |
+|----------|----------|----------|
+| Data     | Data     | Data     |
+| Data     | Data     | Data     |`;
+
+function handleEmptyStateAction(action: EmptyStateAction): void {
+  if (action === 'start-writing') {
+    switchMode('source');
+    return;
+  }
+  const template = action === 'basic-structure' ? TEMPLATE_BASIC : TEMPLATE_TABLE;
+  renderAll(template, blocksContainer, handleBlockClick);
+  postEdit(template);
+  switchMode('source');
+}
+
+function syncEmptyState(content: string): void {
+  updateEmptyState(content, blocksContainer);
+  if (blocksContainer.dataset['empty'] === 'true') {
+    createEmptyState(blocksContainer, !!currentConfig.readOnly, handleEmptyStateAction);
+  } else {
+    destroyEmptyState(blocksContainer);
+  }
+}
 
 // ─── Message handling ──────────────────────────────────
 
@@ -79,7 +120,7 @@ window.addEventListener('message', ({ data }: MessageEvent<HostToWebview>) => {
         } else {
           renderAll(data.content, blocksContainer, handleBlockClick);
         }
-        updateEmptyState(data.content, blocksContainer);
+        syncEmptyState(data.content);
         sendOutline();
         sendBlockList();
       } else {
@@ -97,18 +138,19 @@ window.addEventListener('message', ({ data }: MessageEvent<HostToWebview>) => {
     case 'scrollSync': {
       _applyingRemoteScroll = true;
       window.scrollTo({ top: data.scrollTop, behavior: 'instant' });
-      // Release the suppression flag after the scroll event has fired
-      setTimeout(() => { _applyingRemoteScroll = false; }, 120);
+      // Release after the scroll event fires; 50ms is enough for one frame
+      setTimeout(() => { _applyingRemoteScroll = false; }, 50);
       break;
     }
 
     case 'highlightDiff': {
-      applyDiffHighlight(data.changed, data.added, data.removed);
+      applyDiffHighlight(data.changed, data.added, data.removed, data.gaps);
       break;
     }
 
     case 'setMode': {
-      switchMode(data.mode);
+      // Host-relayed mode change (from sibling panel) — don't re-relay back
+      switchMode(data.mode, true, false);
       break;
     }
 
@@ -162,6 +204,9 @@ function _activateEditMode(blockIndex: number): void {
 }
 
 function handleBlockClick(blockIndex: number): void {
+  // Read-only panels (original side of diff) never enter edit mode
+  if (currentConfig.readOnly) return;
+
   // Clicking the block already in edit mode → no-op.
   if (isEditing() && getActiveBlockIndex() === blockIndex) return;
 
@@ -213,18 +258,22 @@ function sendBlockList(): void {
 // ─── Diff highlight ─────────────────────────────────────
 
 /**
- * Apply diff highlight CSS classes to block elements.
- * Classes are cleared first so re-runs are idempotent.
+ * Apply diff highlight CSS classes and gap markers to block elements.
+ * Classes and markers are cleared first so re-runs are idempotent.
  */
 function applyDiffHighlight(
   changed: number[],
   added: number[],
-  removed: number[]
+  removed: number[],
+  gaps: { afterIndex: number; count: number }[]
 ): void {
-  // Clear all previous diff classes in one pass
+  // Clear all previous diff classes and gap markers
   const allBlocks = blocksContainer.querySelectorAll<HTMLElement>('.block');
   for (const el of allBlocks) {
     el.classList.remove('diff-changed', 'diff-added', 'diff-removed');
+  }
+  for (const gap of blocksContainer.querySelectorAll('.diff-gap')) {
+    gap.remove();
   }
 
   const getBlock = (i: number): HTMLElement | null =>
@@ -233,22 +282,48 @@ function applyDiffHighlight(
   for (const i of changed) { getBlock(i)?.classList.add('diff-changed'); }
   for (const i of added)   { getBlock(i)?.classList.add('diff-added');   }
   for (const i of removed) { getBlock(i)?.classList.add('diff-removed'); }
+
+  // Insert gap markers showing where blocks are missing
+  for (const gap of gaps) {
+    const marker = document.createElement('div');
+    marker.className = 'diff-gap';
+    const isRemoved = removed.length > 0 || added.length === 0;
+    marker.classList.add(isRemoved ? 'diff-gap--removed' : 'diff-gap--added');
+    const label = isRemoved
+      ? `${gap.count} block${gap.count > 1 ? 's' : ''} removed`
+      : `${gap.count} block${gap.count > 1 ? 's' : ''} added`;
+    marker.textContent = label;
+    marker.setAttribute('aria-label', label);
+
+    if (gap.afterIndex === -1) {
+      blocksContainer.insertBefore(marker, blocksContainer.firstChild);
+    } else {
+      const anchor = getBlock(gap.afterIndex);
+      if (anchor?.nextSibling) {
+        blocksContainer.insertBefore(marker, anchor.nextSibling);
+      } else {
+        blocksContainer.appendChild(marker);
+      }
+    }
+  }
 }
 
 // ─── Scroll sync ───────────────────────────────────────
 // Two roles:
-//   1. Outline highlight (existing) — fires sendOutline on scroll
-//   2. Diff panel sync (new) — sends scrollTop to host for relay to sibling panel
+//   1. Outline highlight — debounced at 80ms (cheap, infrequent)
+//   2. Diff panel sync — rAF throttled (~16ms) for smooth real-time sync
 
 /** Set to true while applying a scroll command from the host to prevent feedback loops. */
 let _applyingRemoteScroll = false;
 
-let scrollTimer: ReturnType<typeof setTimeout> | null = null;
+let _outlineScrollTimer: ReturnType<typeof setTimeout> | null = null;
+let _scrollSyncRafId: number | null = null;
+
 window.addEventListener('scroll', () => {
-  if (scrollTimer) clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(() => {
-    // Outline sync
-    if (currentConfig.syncScrollOutline) {
+  // Outline sync — low frequency, debounced
+  if (currentConfig.syncScrollOutline) {
+    if (_outlineScrollTimer) clearTimeout(_outlineScrollTimer);
+    _outlineScrollTimer = setTimeout(() => {
       const headingEls = blocksContainer.querySelectorAll<HTMLElement>(
         'h1, h2, h3, h4, h5, h6'
       );
@@ -259,13 +334,17 @@ window.addEventListener('scroll', () => {
           break;
         }
       }
-    }
+    }, 80);
+  }
 
-    // Diff scroll sync — relay our position to sibling panel via host
-    if (!_applyingRemoteScroll) {
+  // Diff scroll sync — rAF throttled so the sibling follows in real time
+  if (!_applyingRemoteScroll) {
+    if (_scrollSyncRafId !== null) cancelAnimationFrame(_scrollSyncRafId);
+    _scrollSyncRafId = requestAnimationFrame(() => {
+      _scrollSyncRafId = null;
       vscode.postMessage({ type: 'scrollSync', scrollTop: window.scrollY });
-    }
-  }, 80);
+    });
+  }
 }, { passive: true });
 
 // ─── Link interception ─────────────────────────────────
@@ -297,10 +376,12 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-function switchMode(mode: 'preview' | 'source', scroll = true): void {
+function switchMode(mode: 'preview' | 'source', scroll = true, relay = true): void {
   if (scroll) window.scrollTo(0, 0);
   updateTabBar(mode);
   currentMode = mode;
+  // Relay mode to sibling diff panel (skip when applying a relayed setMode from host)
+  if (relay) vscode.postMessage({ type: 'modeChange', mode });
   if (mode === 'source') {
     const content = getSourceModeContent(
       isEditing(),
@@ -322,7 +403,7 @@ function switchMode(mode: 'preview' | 'source', scroll = true): void {
     // get stuck showing stale content after the source buffer is cleared.
     const content = sourceTextarea.value;
     renderAll(content, blocksContainer, handleBlockClick);
-    updateEmptyState(content, blocksContainer);
+    syncEmptyState(content);
     sendOutline();
     sendBlockList();
     if (content !== previousContent) {
@@ -364,6 +445,10 @@ function applyConfig(config: WebviewConfig): void {
   const root = document.documentElement;
   root.style.setProperty('--content-width', `${config.lineWidth}px`);
   root.style.setProperty('--base-font-size', `${config.fontSize}px`);
+
+  // Read-only mode: set body class and lock down source textarea
+  document.body.classList.toggle('read-only', !!config.readOnly);
+  sourceTextarea.readOnly = !!config.readOnly;
 
   // Apply the configured mode only on the initial load (the first update after
   // the webview sends 'ready'). After that the user's mode choice is authoritative
