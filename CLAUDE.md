@@ -75,3 +75,5 @@ npx mocha --ui tdd "out-test/test/suite/markdownParser.test.js" --timeout 10000
 ```
 
 Coverage threshold: 80% lines/functions, 75% branches (enforced by nyc).
+
+**Every change must include tests.** When adding or modifying code, write or update unit tests in the corresponding `test/suite/*.test.ts` file. Run `npm run test:unit` before considering any change complete. Do not skip tests even for "obvious" fixes — if it can break, it needs a test proving it works.
