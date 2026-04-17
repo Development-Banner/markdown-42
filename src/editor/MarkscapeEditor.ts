@@ -4,6 +4,7 @@ import { DocumentModel } from './DocumentModel';
 import { OutlineProvider } from '../outline/OutlineProvider';
 import { getConfig, toWebviewConfig } from '../settings/config';
 import type { HostToWebview, WebviewToHost } from './MessageBus';
+import { computeBlockDiff } from './diffEngine';
 import { setActiveModel } from '../extension';
 
 /** Entry in the per-filename panel registry used for diff scroll sync and highlighting. */
@@ -38,6 +39,15 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
     let config = getConfig();
     const model = new DocumentModel(document);
 
+    // Original-side panels (e.g. git://) are read-only — no editing allowed
+    const isReadOnly = document.uri.scheme !== 'file';
+
+    // Suppress echo: when the webview triggers an edit we must not re-send
+    // the resulting onDidChangeTextDocument back as an 'update'. Without
+    // this guard the round-trip causes a redundant renderUpdate in the
+    // webview, producing a visible flicker on block transitions.
+    let isApplyingWebviewEdit = false;
+
     // Security: restrict script/resource origins to this extension only
     webviewPanel.webview.options = {
       enableScripts: true,
@@ -46,7 +56,7 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
 
     webviewPanel.webview.html = this.buildHtml(
       webviewPanel.webview,
-      toWebviewConfig({ ...config })
+      toWebviewConfig({ ...config }, isReadOnly)
     );
 
     // Type-safe message sender
@@ -67,14 +77,18 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
               type: 'update',
               content: model.content,
               version: model.version,
-              config: toWebviewConfig(config),
+              config: toWebviewConfig(config, isReadOnly),
             });
             break;
 
           case 'edit':
+            // Defense-in-depth: read-only panels must never apply edits
+            if (isReadOnly) break;
             // Version guard: only apply if version matches our expectation
             if (msg.version === model.version) {
+              isApplyingWebviewEdit = true;
               await model.applyEdit(msg.content);
+              isApplyingWebviewEdit = false;
               if (config.autoSave) {
                 await model.save();
               }
@@ -82,6 +96,7 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
             break;
 
           case 'save':
+            if (isReadOnly) break;
             await model.save();
             break;
 
@@ -113,19 +128,27 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
             panelEntry.blocks = msg.blocks;
             broadcastDiff();
             break;
+
+          case 'modeChange':
+            // Relay mode switch to sibling panels so both sides of a diff stay in sync
+            relayToSiblings({ type: 'setMode', mode: msg.mode });
+            break;
         }
       }
     );
 
     // Propagate external edits (git checkout, other extensions, etc.)
+    // Skip changes that originated from the webview itself — echoing
+    // those back causes a redundant renderUpdate and visible flicker.
     const docChangeDisposable = vscode.workspace.onDidChangeTextDocument(e => {
       if (e.document.uri.toString() !== document.uri.toString()) return;
+      if (isApplyingWebviewEdit) return;
       model.notifyExternalChange(e.document);
       send({
         type: 'update',
         content: model.content,
         version: model.version,
-        config: toWebviewConfig(config),
+        config: toWebviewConfig(config, isReadOnly),
       });
     });
 
@@ -134,7 +157,7 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
       e => {
         if (e.affectsConfiguration('markdown42')) {
           config = getConfig();
-          send({ type: 'configChange', config: toWebviewConfig(config) });
+          send({ type: 'configChange', config: toWebviewConfig(config, isReadOnly) });
         }
       }
     );
@@ -185,30 +208,22 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
       }
       if (!original?.blocks || !modified?.blocks) return;
 
-      const origBlocks = original.blocks;
-      const modBlocks = modified.blocks;
-      const maxLen = Math.max(origBlocks.length, modBlocks.length);
+      const diff = computeBlockDiff(original.blocks, modified.blocks);
 
-      const changedOrig: number[] = [];
-      const changedMod: number[] = [];
-      const removed: number[] = []; // exist in original but not in modified
-      const added: number[] = [];   // exist in modified but not in original
-
-      for (let i = 0; i < maxLen; i++) {
-        const a = origBlocks[i];
-        const b = modBlocks[i];
-        if (a === undefined) {
-          added.push(i);
-        } else if (b === undefined) {
-          removed.push(i);
-        } else if (a !== b) {
-          changedOrig.push(i);
-          changedMod.push(i);
-        }
-      }
-
-      original.send({ type: 'highlightDiff', changed: changedOrig, added: [], removed });
-      modified.send({ type: 'highlightDiff', changed: changedMod, added, removed: [] });
+      original.send({
+        type: 'highlightDiff',
+        changed: diff.original.changed,
+        added: diff.original.added,
+        removed: diff.original.removed,
+        gaps: diff.original.gaps,
+      });
+      modified.send({
+        type: 'highlightDiff',
+        changed: diff.modified.changed,
+        added: diff.modified.added,
+        removed: diff.modified.removed,
+        gaps: diff.modified.gaps,
+      });
     };
 
     // Track which model is active so the single save command knows what to save
@@ -235,7 +250,7 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
         } else {
           // Clear diff highlights on remaining sibling panels
           for (const peer of peers) {
-            peer.send({ type: 'highlightDiff', changed: [], added: [], removed: [] });
+            peer.send({ type: 'highlightDiff', changed: [], added: [], removed: [], gaps: [] });
             peer.blocks = undefined;
           }
         }
@@ -268,7 +283,7 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
    */
   private buildHtml(
     webview: vscode.Webview,
-    _config: ReturnType<typeof toWebviewConfig>
+    config: ReturnType<typeof toWebviewConfig>
   ): string {
     // Cross-platform URI construction using vscode.Uri.joinPath
     const cssUri = webview.asWebviewUri(
@@ -296,7 +311,7 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
   <link rel="stylesheet" href="${cssUri}">
   <title>Markdown42</title>
 </head>
-<body>
+<body${config.readOnly ? ' class="read-only"' : ''}>
   <div id="tab-bar" role="tablist" aria-label="Editor mode">
     <div class="mode-toggle">
       <button role="tab" aria-selected="true" data-mode="preview" id="tab-preview">
@@ -317,7 +332,7 @@ export class Markdown42Editor implements vscode.CustomTextEditorProvider {
   <div id="content-wrapper" role="main">
     <div id="blocks" aria-label="Document content"></div>
     <div id="source-editor" aria-label="Source editor" hidden>
-      <textarea id="source-textarea" spellcheck="false" aria-label="Markdown source"></textarea>
+      <textarea id="source-textarea" spellcheck="false" aria-label="Markdown source"${config.readOnly ? ' readonly' : ''}></textarea>
     </div>
   </div>
   <script nonce="${nonce}" src="${jsUri}"></script>

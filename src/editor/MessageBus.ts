@@ -16,7 +16,7 @@ export type HostToWebview =
   | { type: 'setMode'; mode: 'preview' | 'source' }
   | { type: 'configChange'; config: WebviewConfig }
   | { type: 'scrollSync'; scrollTop: number }
-  | { type: 'highlightDiff'; changed: number[]; added: number[]; removed: number[] };
+  | { type: 'highlightDiff'; changed: number[]; added: number[]; removed: number[]; gaps: { afterIndex: number; count: number }[] };
 
 export type WebviewToHost =
   | { type: 'edit'; content: string; version: number }
@@ -26,7 +26,8 @@ export type WebviewToHost =
   | { type: 'openLink'; href: string }
   | { type: 'error'; message: string }
   | { type: 'scrollSync'; scrollTop: number }
-  | { type: 'blockList'; blocks: string[] };
+  | { type: 'blockList'; blocks: string[] }
+  | { type: 'modeChange'; mode: 'preview' | 'source' };
 
 export interface WebviewConfig {
   fontSize: number;
@@ -34,4 +35,5 @@ export interface WebviewConfig {
   renderDelay: number;
   syncScrollOutline: boolean;
   mode: 'preview' | 'source';
+  readOnly: boolean;
 }
