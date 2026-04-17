@@ -170,7 +170,7 @@
     "test": "npm run compile:test && node ./out/test/runTests.js",
     "test:unit": "npm run compile:test && mocha --ui tdd \"out-test/test/suite/**/*.test.js\" --timeout 10000",
     "test:e2e": "playwright test test/e2e/",
-    "test:coverage": "nyc npm run test:unit",
+    "test:coverage": "npm run compile:test && nyc mocha --ui tdd \"out-test/test/suite/**/*.test.js\" --timeout 10000",
     "lint": "eslint src/ test/ --ext .ts",
     "lint:fix": "eslint src/ test/ --ext .ts --fix",
     "audit:check": "npm audit --audit-level=moderate",
@@ -210,12 +210,16 @@
   },
   "nyc": {
     "extension": [
-      ".ts"
+      ".js"
+    ],
+    "include": [
+      "out-test/src/**/*.js"
     ],
     "exclude": [
       "**/*.d.ts",
-      "out/test/**",
-      "test/**"
+      "**/*.map",
+      "out-test/test/**",
+      "out-test/media/**"
     ],
     "reporter": [
       "text",

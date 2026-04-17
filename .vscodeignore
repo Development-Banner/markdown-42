@@ -24,9 +24,12 @@ esbuild.config.js
 # Dev artifacts
 node_modules/**
 coverage/**
+.nyc_output/**
 out-test/**
 .worktrees/**
+.rainbow/**
 temp-*/**
+temp-*.js
 *.vsix
 temp-tabbar-only.js
 **/*.map
@@ -35,6 +38,9 @@ AGENTS.md
 CLAUDE.md
 LEARNINGS.md
 HISTORY.md
+
+# README-only assets (served from GitHub raw URL, not packaged)
+media/*.gif
 
 # Documentation and misc
 docs/**
